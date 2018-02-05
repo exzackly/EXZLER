@@ -76,8 +76,10 @@ let symbols: [SymbolType] = [
 
 let coalescedRegularExpression = symbols.reduce(""){ $0 == "" ? "(\($1.regularExpression))" : $0 + "|" + "(\($1.regularExpression))" }
 
-func lex(program: String) {
-    print(program)
+func lex(program: String, verbose: Bool = false) {
+    if verbose {
+        print(program)
+    }
     
     var tokens: [Token] = []
     
@@ -105,9 +107,11 @@ func lex(program: String) {
 
     }
     
-    print("Found \(tokens.count) tokens")
-    for token in tokens {
-        print("LEXER -> \(token)")
+    if verbose {
+        print("Found \(tokens.count) tokens")
+        for token in tokens {
+            print("LEXER -> \(token)")
+        }
     }
     
     // Check if program ended with EOP [ $ ]. Issue warning and add if not
