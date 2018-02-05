@@ -109,6 +109,14 @@ func lex(program: String) {
     for token in tokens {
         print("LEXER -> \(token)")
     }
+    
+    // Check if program ended with EOP [ $ ]. Issue warning and add if not
+    if tokens.last?.type != .EOP {
+        let lastLine = tokens.last?.lineNumber ?? 0 // Line to add EOP [ $ ]
+        let EOPToken = Token(type: .EOP, data: "$", lineNumber: lastLine)
+        tokens.append(EOPToken)
+        print("WARNING: EOP [ $ ] not found. Adding to end of file on line \(lastLine)")
+    }
 }
 
 func extract(matches: [NSTextCheckingResult], from program: String) -> [(substring: String, tokenType: TokenType)] {

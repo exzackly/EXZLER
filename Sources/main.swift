@@ -13,4 +13,4 @@ let program = parseSourceFromFile(filename: INPUT_FILENAME)
 
 lex(program: program)
 
-//lex(program: "{ \"test custom program here\" }$")
+lex(program: "{ \"test custom program here\" }")
