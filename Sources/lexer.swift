@@ -24,7 +24,6 @@ enum TokenType: String {
     case digit            = "digit"
     case string           = "string"
     case id               = "id"
-    case comment          = "comment"
     case space            = "space"
     case EOP              = "EOP"
     case invalid          = "invalid"
@@ -49,7 +48,6 @@ class Token: CustomStringConvertible {
 typealias SymbolType = (regularExpression: String, tokenType: TokenType)
 
 let symbols: [SymbolType] = [
-    //TODO: Fix names
     ("\\{", .leftCurlyBrace),      // {
     ("\\}", .rightCurlyBrace),     // }
     ("\\(", .leftParenthesis),     // (
@@ -69,19 +67,21 @@ let symbols: [SymbolType] = [
     ("[0-9]", .digit),             // digit
     ("\"[ a-z]*\"", .string),      // char list
     ("[a-z]", .id),                // id
-    ("\\/\\*.*?\\*\\/", .comment), // comment
     ("\\s", .space),               // space
     ("\\$", .EOP)                  // end of program
 ]
 
 let coalescedRegularExpression = symbols.reduce(""){ $0 == "" ? "(\($1.regularExpression))" : $0 + "|" + "(\($1.regularExpression))" }
 
-func lex(program: String, verbose: Bool = false) {
+func lex(program: String, verbose: Bool = false) -> [Token] {
     if verbose {
         print(program)
     }
     
     var tokens: [Token] = []
+    
+    // Strip comments. Need to do here in case comment in string (char list)
+    let program = program.replacingOccurrences(of: "\\/\\*.*?\\*\\/", with: "", options: .regularExpression)
     
     // Break input into lines to provide line numbers for warnings and errors
     let programLines = program.components(separatedBy: "\n")
@@ -98,7 +98,7 @@ func lex(program: String, verbose: Bool = false) {
         }
         
         for match in extractedMatches {
-            if match.tokenType == .comment || match.tokenType == .space { // Skip comments and whitespace
+            if match.tokenType == .space { // Skip whitespace
                 continue
             }
             let newToken = Token(type: match.tokenType, data: match.substring, lineNumber: lineNumber+1) // local lineNumber 0-indexed
@@ -121,24 +121,25 @@ func lex(program: String, verbose: Bool = false) {
         tokens.append(EOPToken)
         print("WARNING: EOP [ $ ] not found. Adding to end of file on line \(lastLine)")
     }
+    
+    return tokens
 }
 
 func extract(matches: [NSTextCheckingResult], from program: String) -> [(substring: String, tokenType: TokenType)] {
-    var currentLocation = 0 //TODO: COMMENT
+    var currentLocation = 0 // Used to ensure that ranges are contiguous. Non-matched section means invalid token found
     var extractedMatches: [(substring: String, tokenType: TokenType)] = []
     
-    //TODO: comment
     outer: for match in matches {
-        let matchRanges = (0..<match.numberOfRanges).map{ match.range(at: $0) }
-        for (index, range) in matchRanges.enumerated().reversed() {
+        let matchRanges = (0..<match.numberOfRanges).map{ match.range(at: $0) } // Extract all ranges (capture groups)
+        for (index, range) in matchRanges.enumerated().reversed() { // Iterate through ranges and grab last capture group
             if range.location != NSNotFound {
-                guard range.location == currentLocation else {
+                guard range.location == currentLocation else { // Non-matched section found; invalid token
                     let errorRange = NSRange(location: currentLocation, length: 1)
                     return [(String(program[Range(errorRange, in: program)!]), .invalid)]
                 }
                 currentLocation += range.length
                 let substring = String(program[Range(match.range, in: program)!])
-                let tokenType = symbols[index-1].tokenType
+                let tokenType = symbols[index-1].tokenType // Symbols 0-indexed
                 extractedMatches.append((substring: substring, tokenType: tokenType))
                 continue outer
             }
