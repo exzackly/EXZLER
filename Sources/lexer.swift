@@ -48,27 +48,28 @@ class Token: CustomStringConvertible {
 typealias SymbolType = (regularExpression: String, tokenType: TokenType)
 
 let symbols: [SymbolType] = [
-    ("\\{", .leftCurlyBrace),      // {
-    ("\\}", .rightCurlyBrace),     // }
-    ("\\(", .leftParenthesis),     // (
-    ("\\)", .rightParenthesis),    // )
-    ("\\+", .addition),            // +
-    ("==", .equality),             // ==
-    ("!=", .inequality),           // !=
-    ("=", .assignment),            // =
-    ("if", .if),                   // if
-    ("while", .while),             // while
-    ("print", .print),             // print
-    ("true", .boolean),            // true
-    ("false", .boolean),           // false
-    ("int", .type),                // int
-    ("boolean", .type),            // boolean
-    ("string", .type),             // string
-    ("[0-9]", .digit),             // digit
-    ("\"[ a-z]*\"", .string),      // char list
-    ("[a-z]", .id),                // id
-    ("\\s", .space),               // space
-    ("\\$", .EOP)                  // end of program
+    ("\\{", .leftCurlyBrace),   // {
+    ("\\}", .rightCurlyBrace),  // }
+    ("\\(", .leftParenthesis),  // (
+    ("\\)", .rightParenthesis), // )
+    ("\\+", .addition),         // +
+    ("==", .equality),          // ==
+    ("!=", .inequality),        // !=
+    ("=", .assignment),         // =
+    ("if", .if),                // if
+    ("while", .while),          // while
+    ("print", .print),          // print
+    ("true", .boolean),         // true
+    ("false", .boolean),        // false
+    ("int", .type),             // int
+    ("boolean", .type),         // boolean
+    ("string", .type),          // string
+    ("[0-9]", .digit),          // digit
+    ("\"[ a-z]*\"", .string),   // char list
+    ("[a-z]", .id),             // id
+    ("\\s", .space),            // space
+    ("\\$", .EOP),              // end of program
+    ("\".*\"", .invalid)       // invalid char list
 ]
 
 let coalescedRegularExpression = symbols.reduce(""){ $0 == "" ? "(\($1.regularExpression))" : $0 + "|" + "(\($1.regularExpression))" }
@@ -79,6 +80,7 @@ func lex(program: String, verbose: Bool = false) -> [Token] {
     }
     
     var tokens: [Token] = []
+    var warningCount = 0
     
     // Strip comments. Need to do here in case comment in string (char list)
     let program = program.replacingOccurrences(of: "\\/\\*.*?\\*\\/", with: "", options: .regularExpression)
@@ -92,13 +94,12 @@ func lex(program: String, verbose: Bool = false) -> [Token] {
         
         let extractedMatches = extract(matches: tokenMatches, from: programLine)
         
-        guard extractedMatches.first?.tokenType != .invalid else {
-            print("ERROR: Invalid token [\(extractedMatches[0].substring)] on line \(lineNumber+1)") // local lineNumber 0-indexed
-            exit(2) // Exit code 2 indicates lex error
-        }
-        
         for match in extractedMatches {
-            if match.tokenType == .space { // Skip whitespace
+            if match.tokenType == .invalid { // Catch errors
+                print("ERROR: Invalid token [\(match.substring)] on line \(lineNumber+1)") // local lineNumber 0-indexed
+                print("Lexing failed with \(warningCount) warning(s) and 1 error(s)")
+                exit(2) // Exit code 2 indicates lex error
+            } else if match.tokenType == .space { // Skip whitespace
                 continue
             }
             let newToken = Token(type: match.tokenType, data: match.substring, lineNumber: lineNumber+1) // local lineNumber 0-indexed
@@ -119,8 +120,12 @@ func lex(program: String, verbose: Bool = false) -> [Token] {
         let lastLine = tokens.last?.lineNumber ?? 0 // Line to add EOP [ $ ]
         let EOPToken = Token(type: .EOP, data: "$", lineNumber: lastLine)
         tokens.append(EOPToken)
+        warningCount += 1
         print("WARNING: EOP [ $ ] not found. Adding to end of file on line \(lastLine)")
     }
+    
+    // Print result regardless of verbose
+    print("Lexing completed with \(warningCount) warning(s) and 0 error(s)")
     
     return tokens
 }
@@ -135,7 +140,8 @@ func extract(matches: [NSTextCheckingResult], from program: String) -> [(substri
             if range.location != NSNotFound {
                 guard range.location == currentLocation else { // Non-matched section found; invalid token
                     let errorRange = NSRange(location: currentLocation, length: 1)
-                    return [(String(program[Range(errorRange, in: program)!]), .invalid)]
+                    var errorData = String(program[Range(errorRange, in: program)!])
+                    return [(errorData, .invalid)]
                 }
                 currentLocation += range.length
                 let substring = String(program[Range(match.range, in: program)!])
