@@ -18,10 +18,10 @@ private func readFromFile(filename: String) -> String? {
     }
 }
 
-func parseSourceFromFile(filename: String) -> String {
-    guard let fileContents = readFromFile(filename: INPUT_FILENAME) else {
-        print(INPUT_FILENAME + " could not be found")
-        exit(1) // Exit code 1 indicates input file not found
+func parseSourceFromFile(filename: String) -> String? {
+    guard let fileContents = readFromFile(filename: filename) else {
+        print(filename + " could not be found")
+        return nil
     }
     return fileContents.trimmingCharacters(in: .whitespacesAndNewlines)
 }
