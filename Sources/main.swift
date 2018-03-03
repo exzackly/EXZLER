@@ -76,13 +76,17 @@ class Token: CustomStringConvertible {
 let FILENAME_FLAG = "-f"
 let VERBOSE_FLAG = "-v"
 let TEST_LEXING_FLAG = "-l"
-//let TEST_PARSING_FLAG = "-p"
+let TEST_PARSING_FLAG = "-p"
 //let TEST_SEMANTIC_ANALYSIS_FLAG = "-s"
 //let TEST_CODE_GEN_FLAG = "-c"
 //let TEST_EXZLER = "-t"
 
 if CommandLine.arguments.contains(TEST_LEXING_FLAG) {
     testLexing()
+}
+
+if CommandLine.arguments.contains(TEST_PARSING_FLAG) {
+    testParsing()
 }
 
 guard let filenameFlagIndex = CommandLine.arguments.index(of: FILENAME_FLAG),

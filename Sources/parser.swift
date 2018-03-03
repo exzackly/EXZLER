@@ -11,15 +11,14 @@ var _tokens: [Token] = []
 
 func parse(tokens: [Token], verbose: Bool = false) -> Bool? {
     _tokens = tokens
-    var errorCount = 0
     
     guard parseBlock() && consume(tokenType: .EOP)() else {
-        errorCount += 1
+        print("Parsing completed with 0 warning(s) and 1 error(s)\n")
         return nil
     }
     
     // Print result regardless of verbose
-    print("Parsing completed with 0 warning(s) and \(errorCount) error(s)\n")
+    print("Parsing completed with 0 warning(s) and 0 error(s)\n")
     
     //TODO: Return CST
     return true
@@ -48,7 +47,7 @@ func consume(tokenType: TokenType) -> () -> Bool {
             return false
         }
         let token = _tokens.removeFirst()
-        print("PARSER -> Expecting [\(tokenType.rawValue)] found [\(token.data)] on line \(token.lineNumber)")
+        print("PARSER -> Expecting [ \(tokenType.rawValue) ] found [ \(token.data) ] on line \(token.lineNumber)")
         return true
     }
 }

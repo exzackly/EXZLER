@@ -15,8 +15,8 @@ let lexingTests = [
     "{print(\"int a\")}$", // int should be parsed as part of string
     "int i f = 5", // i and f should be ids
     "{}()+==!==ifwhileprinttruefalseintbooleanstring0123456789\"exzackly\"abcdefghijklmnopqrstuvwxyz$", // Test everything
-    "{{{{{{}}} /* forget end of program token */ }}}}", // Forget end of program token ($)
-    "{{{{{{}}} /* end of token in comment $ */ }}}}$", // End of token in comment
+    "{{{{{{}}} /* forget end of program token */ }}}", // Forget end of program token ($)
+    "{{{{{{}}} /* end of token in comment $ */ }}}$", // End of token in comment
     "/* Long Test Case - Everything Except Boolean Declaration */\n{\n/* Int Declaration */\nint a\nint b\nboolean c\nboolean d\na = 0\nb = 0\nc = true\nd = false\n/* While Loop */\nwhile (a != 3) {\nprint(a)\nwhile (b != 3) {\nprint(b)\nb = 1 + b\nif (b == 2) {\n/* Print Statement */print(\"there is no spoon\"/* This will do nothing */)\n}\n}\nb = 0\na = 1 + a\n}\n}$", // Multiple lines
     "/*LongTestCase-EverythingExceptBooleanDeclaration*/{/*IntDeclaration*/intaintbbooleancbooleanda=0b=0c=trued=false/*WhileLoop*/while(a!=3){print(a)while(b!=3){print(b)b=1+bif(b==2){/*PrintStatement*/print(\"there is no spoon\"/*Thiswilldonothing*/)}}b=0a=1+a}}$", // No spaces
     
@@ -32,6 +32,33 @@ let lexingTests = [
 func testLexing() {
     for test in lexingTests {
         _ = lex(program: test, verbose: true)
+        print()
+    }
+}
+
+let parsingTests = [
+    /* Valid parse */
+    "{}$",
+    "{{{{{{}}}}}}$",
+    "{if (a == 3+b) {}}$",
+    "{if (z == 7+2+1) {}}$",
+    "{print(\"int a\")}$", // int should be parsed as part of string
+    "{{{{{{}}} /* forget end of program token */ }}}", // Forget end of program token ($)
+    "{{{{{{}}} /* end of token in comment $ */ }}}$", // End of token in comment
+    "/* Long Test Case - Everything Except Boolean Declaration */\n{\n/* Int Declaration */\nint a\nint b\nboolean c\nboolean d\na = 0\nb = 0\nc = true\nd = false\n/* While Loop */\nwhile (a != 3) {\nprint(a)\nwhile (b != 3) {\nprint(b)\nb = 1 + b\nif (b == 2) {\n/* Print Statement */print(\"there is no spoon\"/* This will do nothing */)\n}\n}\nb = 0\na = 1 + a\n}\n}$", // Multiple lines
+    "/*LongTestCase-EverythingExceptBooleanDeclaration*/{/*IntDeclaration*/intaintbbooleancbooleanda=0b=0c=trued=false/*WhileLoop*/while(a!=3){print(a)while(b!=3){print(b)b=1+bif(b==2){/*PrintStatement*/print(\"there is no spoon\"/*Thiswilldonothing*/)}}b=0a=1+a}}$", // No spaces
+    
+    
+    /* Error cases */
+    "{{{{{{}}} /* comments are ignored */ }}}}$", // Unmatched braces
+    "{if (a == c+7) {}}$", // id+digit is invalid
+    
+]
+
+func testParsing() {
+    for test in parsingTests {
+        let tokens = lex(program: test, verbose: true)!
+        _ = parse(tokens: tokens)
         print()
     }
 }
