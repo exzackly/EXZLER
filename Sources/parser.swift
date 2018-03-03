@@ -7,10 +7,12 @@
 
 import Foundation
 
-var _tokens: [Token] = []
+var tokens: [Token]!
+var concreteSyntaxTree: Tree<String>!
 
-func parse(tokens: [Token], verbose: Bool = false) -> Bool? {
-    _tokens = tokens
+func parse(tokens tok: [Token], verbose: Bool = false) -> Tree<String>? {
+    tokens = tok
+    concreteSyntaxTree = Tree(data: "Program")
     
     guard parseBlock() && consume(tokenType: .EOP)() else {
         print("Parsing completed with 0 warning(s) and 1 error(s)\n")
@@ -20,13 +22,15 @@ func parse(tokens: [Token], verbose: Bool = false) -> Bool? {
     // Print result regardless of verbose
     print("Parsing completed with 0 warning(s) and 0 error(s)\n")
     
-    //TODO: Return CST
-    return true
+    //TODO: Improve print
+    print(concreteSyntaxTree)
+    
+    return concreteSyntaxTree
 }
 
 func parse(routes: [TokenType : [() -> Bool]]) -> Bool {
-    guard let route = routes[_tokens[0].type] else {
-        let foundToken = _tokens[0]
+    guard let route = routes[tokens[0].type] else {
+        let foundToken = tokens[0]
         let expected = routes.reduce(""){ $0 == "" ? $1.key.rawValue: $0 + " | " + $1.key.rawValue }
         print("ERROR: Expecting [ \(expected) ] found [ \(foundToken.data) ] on line \(foundToken.lineNumber)")
         return false
@@ -41,67 +45,87 @@ func parse(routes: [TokenType : [() -> Bool]]) -> Bool {
 
 func consume(tokenType: TokenType) -> () -> Bool {
     return { // Return () -> Bool closure that consumes that specified tokenType
-        guard _tokens[0].type == tokenType else {
-            let foundToken = _tokens[0]
+        guard tokens[0].type == tokenType else {
+            let foundToken = tokens[0]
             print("ERROR: Expecting [ \(tokenType.rawValue) ] found [ \(foundToken.data) ] on line \(foundToken.lineNumber)")
             return false
         }
-        let token = _tokens.removeFirst()
+        let token = tokens.removeFirst()
+        concreteSyntaxTree.addChild(data: "[ \(token.data) ]")
+        concreteSyntaxTree.endChild()
         print("PARSER -> Expecting [ \(tokenType.rawValue) ] found [ \(token.data) ] on line \(token.lineNumber)")
+        return true
+    }
+}
+
+func add(child: String) -> () -> Bool {
+    return { // Return () -> Bool closure that adds specified child to concreteSyntaxTree
+        concreteSyntaxTree.addChild(data: "<\(child)>")
+        return true
+    }
+}
+
+func endChild() -> () -> Bool {
+    return { // Return () -> Bool closure that ends child to concreteSyntaxTree
+        concreteSyntaxTree.endChild()
         return true
     }
 }
 
 let parseBlock = { return parse(routes: blockRoutes) }
 let blockRoutes: [TokenType : [() -> Bool]] = [
-    .leftCurlyBrace : [consume(tokenType: .leftCurlyBrace), parseStatementList, consume(tokenType: .rightCurlyBrace)] // Block ::== { StatementList }
+    .leftCurlyBrace : [add(child: "Block"), consume(tokenType: .leftCurlyBrace), parseStatementList, consume(tokenType: .rightCurlyBrace), endChild()] // Block ::== { StatementList }
 ]
 
 let parseStatementList = { return parse(routes: statementListRoutes) }
+let statementListRoute = [add(child: "StatementList"), parseStatement, parseStatementList, endChild()]
 let statementListRoutes: [TokenType : [() -> Bool]] = [
-    .print : [parseStatement, parseStatementList],          // Statement ::== PrintStatement
-    .id : [parseStatement, parseStatementList],             // Statement ::== AssignmentStatement
-    .type : [parseStatement, parseStatementList],           // Statement ::== VarDecl
-    .while : [parseStatement, parseStatementList],          // Statement ::== WhileStatement
-    .if : [parseStatement, parseStatementList],             // Statement ::== IfStatement
-    .leftCurlyBrace : [parseStatement, parseStatementList], // Statement ::== Block
-    .rightCurlyBrace : []                                   // Epsilon production
+    .print : statementListRoute,                                                              // Statement ::== PrintStatement
+    .id : statementListRoute,                                                                 // Statement ::== AssignmentStatement
+    .type : statementListRoute,                                                               // Statement ::== VarDecl
+    .while : statementListRoute,                                                              // Statement ::== WhileStatement
+    .if : statementListRoute,                                                                 // Statement ::== IfStatement
+    .leftCurlyBrace : statementListRoute,                                                     // Statement ::== Block
+    .rightCurlyBrace : [add(child: "StatementList"), add(child: "ε"), endChild(), endChild()] // Epsilon production
 ]
 
 let parseStatement = { return parse(routes: statementRoutes) }
 let statementRoutes: [TokenType : [() -> Bool]] = [
-    .print : [consume(tokenType: .print), consume(tokenType: .leftParenthesis),
-              parseExpr, consume(tokenType: .rightParenthesis)],                 // Statement ::== PrintStatement
-    .id : [consume(tokenType: .id), consume(tokenType: .assignment), parseExpr], // Statement ::== AssignmentStatement
-    .type : [consume(tokenType: .type), consume(tokenType: .id)],                // Statement ::== VarDecl
-    .while : [consume(tokenType: .while), parseBooleanExpr, parseBlock],         // Statement ::== WhileStatement
-    .if : [consume(tokenType: .if), parseBooleanExpr, parseBlock],               // Statement ::== IfStatement
-    .leftCurlyBrace : [parseBlock]                                               // Statement ::== Block
+    .print : [add(child: "Statement"), add(child: "PrintStatement"), consume(tokenType: .print),
+              consume(tokenType: .leftParenthesis), parseExpr, consume(tokenType: .rightParenthesis), endChild(), endChild()],                 // Statement ::== PrintStatement
+    .id : [add(child: "Statement"), add(child: "AssignmentStatement"), add(child: "Id"), consume(tokenType: .id), endChild(),
+           consume(tokenType: .assignment), parseExpr, endChild(), endChild()],                                                                // Statement ::== AssignmentStatement
+    .type : [add(child: "Statement"), add(child: "VarDecl"), add(child: "Type"), consume(tokenType: .type), endChild(),
+             add(child: "Id"), consume(tokenType: .id), endChild(), endChild(), endChild()],                                                   // Statement ::== VarDecl
+    .while : [add(child: "Statement"), add(child: "WhileStatement"), consume(tokenType: .while), parseBooleanExpr, parseBlock,
+              endChild(), endChild()],                                                                                                         // Statement ::== WhileStatement
+    .if : [add(child: "Statement"), add(child: "IfStatement"), consume(tokenType: .if), parseBooleanExpr, parseBlock, endChild(), endChild()], // Statement ::== IfStatement
+    .leftCurlyBrace : [add(child: "Statement"), parseBlock, endChild()]                                                                        // Statement ::== Block
 ]
 
 let parseExpr = { return parse(routes: exprRoutes) }
 let exprRoutes: [TokenType : [() -> Bool]] = [
-    .digit : [consume(tokenType: .digit), parseIntExpr], // Expr ::== IntExpr
-    .string : [consume(tokenType: .string)],             // Expr ::== StringExpr
-    .leftParenthesis : [parseBooleanExpr],               // Expr ::== ( Expr boolop Expr )
-    .boolean : [parseBooleanExpr],                       // Expr ::== boolval
-    .id : [consume(tokenType: .id)]                      // Expr ::== Id
+    .digit : [add(child: "Expr"), add(child: "IntExpr"), consume(tokenType: .digit), parseIntExpr, endChild(), endChild()], // Expr ::== IntExpr
+    .string : [add(child: "Expr"), add(child: "StringExpr"), consume(tokenType: .string), endChild(), endChild()],          // Expr ::== StringExpr
+    .leftParenthesis : [add(child: "Expr"), parseBooleanExpr, endChild()],                                                  // Expr ::== ( Expr boolop Expr )
+    .boolean : [add(child: "Expr"), parseBooleanExpr, endChild()],                                                          // Expr ::== boolval
+    .id : [add(child: "Expr"), add(child: "Id"), consume(tokenType: .id), endChild(), endChild()]                           // Expr ::== Id
 ]
 
-let parseIntExpr = { return _tokens[0].type == .addition ? parse(routes: intExprRoutes) : true }
+let parseIntExpr = { return tokens[0].type == .addition ? parse(routes: intExprRoutes) : true }
 let intExprRoutes: [TokenType : [() -> Bool]] = [
     .addition : [consume(tokenType: .addition), parseExpr] // IntExpr ::== digit intop Expr
 ]
 
 let parseBooleanExpr = { return parse(routes: booleanExprRoutes) }
 let booleanExprRoutes: [TokenType : [() -> Bool]] = [
-    .leftParenthesis : [consume(tokenType: .leftParenthesis), parseExpr,
-                        parseBoolop, parseExpr, consume(tokenType: .rightParenthesis)], // BooleanExpr ::== ( Expr boolop Expr )
-    .boolean : [consume(tokenType: .boolean)]                                           // BooleanExpr ::== boolval
+    .leftParenthesis : [add(child: "BooleanExpr"), consume(tokenType: .leftParenthesis), parseExpr,
+                        parseBoolop, parseExpr, consume(tokenType: .rightParenthesis), endChild()], // BooleanExpr ::== ( Expr boolop Expr )
+    .boolean : [add(child: "BooleanExpr"), consume(tokenType: .boolean), endChild()]                // BooleanExpr ::== boolval
 ]
 
 let parseBoolop = { return parse(routes: boolopRoutes) }
 let boolopRoutes: [TokenType : [() -> Bool]] = [
-    .equality : [consume(tokenType: .equality)],    // boolop ::== ==
-    .inequality : [consume(tokenType: .inequality)] // boolop ::== !=
+    .equality : [add(child: "Boolop"), consume(tokenType: .equality), endChild()],    // boolop ::== ==
+    .inequality : [add(child: "Boolop"), consume(tokenType: .inequality), endChild()] // boolop ::== !=
 ]
