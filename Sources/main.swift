@@ -105,6 +105,6 @@ guard let tokens = lex(program: program, verbose: isVerboseMode) else {
     exit(2) // Exit code 2 indicates lex error
 }
 
-guard let CST = parse(tokens: tokens) else {
+guard let CST = parse(tokens: tokens, verbose: isVerboseMode) else {
     exit(3) // Exit code 3 indicates parse error
 }

@@ -9,33 +9,38 @@ import Foundation
 
 var tokens: [Token]!
 var concreteSyntaxTree: Tree<String>!
+var verbose: Bool!
 
-func parse(tokens tok: [Token], verbose: Bool = false) -> Tree<String>? {
-    tokens = tok
-    concreteSyntaxTree = Tree(data: "Program")
+func parse(tokens passedTokens: [Token], verbose isVerbose: Bool = false) -> Tree<String>? {
+    tokens = passedTokens
+    concreteSyntaxTree = Tree(data: "<Root>")
+    verbose = isVerbose
     
-    guard parseBlock() && consume(tokenType: .EOP)() else {
-        print("Parsing completed with 0 warning(s) and 1 error(s)\n")
-        return nil
+    while !tokens.isEmpty {
+        guard parseProgram() else {
+            print("Parsing completed with 0 warning(s) and 1 error(s)\nCST skipped due to parse errors\n")
+            return nil
+        }
     }
     
     // Print result regardless of verbose
     print("Parsing completed with 0 warning(s) and 0 error(s)\n")
     
-    //TODO: Improve print
-    print(concreteSyntaxTree)
+    if verbose {
+        print(concreteSyntaxTree)
+    }
     
     return concreteSyntaxTree
 }
 
 func parse(routes: [TokenType : [() -> Bool]]) -> Bool {
-    guard let route = routes[tokens[0].type] else {
-        let foundToken = tokens[0]
-        let expected = routes.reduce(""){ $0 == "" ? $1.key.rawValue: $0 + " | " + $1.key.rawValue }
+    guard let route = routes[tokens[0].type] else { // Look ahead 1 token to determine route
+        let foundToken = tokens[0] // Valid route not found. Instead found...
+        let expected = routes.reduce(""){ $0 == "" ? $1.key.rawValue: $0 + " | " + $1.key.rawValue } // Compile valid routes
         print("ERROR: Expecting [ \(expected) ] found [ \(foundToken.data) ] on line \(foundToken.lineNumber)")
         return false
     }
-    for step in route {
+    for step in route { // Follow route
         guard step() else {
             return false
         }
@@ -45,15 +50,17 @@ func parse(routes: [TokenType : [() -> Bool]]) -> Bool {
 
 func consume(tokenType: TokenType) -> () -> Bool {
     return { // Return () -> Bool closure that consumes that specified tokenType
-        guard tokens[0].type == tokenType else {
-            let foundToken = tokens[0]
+        guard tokens[0].type == tokenType else { // Validate expected token
+            let foundToken = tokens[0] // Invalid token found. Instead found...
             print("ERROR: Expecting [ \(tokenType.rawValue) ] found [ \(foundToken.data) ] on line \(foundToken.lineNumber)")
             return false
         }
-        let token = tokens.removeFirst()
-        concreteSyntaxTree.addChild(data: "[ \(token.data) ]")
+        let token = tokens.removeFirst() // Consume token
+        concreteSyntaxTree.addChild(data: "[ \(token.data) ]") // Add token to CST
         concreteSyntaxTree.endChild()
-        print("PARSER -> Expecting [ \(tokenType.rawValue) ] found [ \(token.data) ] on line \(token.lineNumber)")
+        if verbose {
+            print("PARSER -> Expecting [ \(tokenType.rawValue) ] found [ \(token.data) ] on line \(token.lineNumber)")
+        }
         return true
     }
 }
@@ -71,6 +78,11 @@ func endChild() -> () -> Bool {
         return true
     }
 }
+
+let parseProgram = { return parse(routes: programRoutes) }
+let programRoutes: [TokenType : [() -> Bool]] = [
+    .leftCurlyBrace : [add(child: "Program"), parseBlock, consume(tokenType: .EOP), endChild()] // Program ::== Block $
+]
 
 let parseBlock = { return parse(routes: blockRoutes) }
 let blockRoutes: [TokenType : [() -> Bool]] = [
