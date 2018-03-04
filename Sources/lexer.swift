@@ -37,15 +37,11 @@ let symbols: [SymbolType] = [
 let coalescedRegularExpression = symbols.reduce(""){ $0 == "" ? "(\($1.regularExpression))" : $0 + "|" + "(\($1.regularExpression))" }
 
 func lex(program: String, verbose: Bool = false) -> [Token]? {
-    if verbose {
-        print(program + "\n")
-    }
-    
     var tokens: [Token] = []
     var warningCount = 0
     
     // Strip comments. Need to do here in case comment in string (char list)
-    let program = program.replacingOccurrences(of: "\\/\\*.*?\\*\\/", with: "", options: .regularExpression)
+    let program = program.replacingOccurrences(of: "\\/\\*(.|\\s)*?\\*\\/", with: "", options: .regularExpression)
     
     // Break input into lines to provide line numbers for warnings and errors
     let programLines = program.components(separatedBy: "\n")

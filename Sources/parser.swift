@@ -33,7 +33,8 @@ func parse(tokens passedTokens: [Token], verbose isVerbose: Bool = false) -> Tre
     return concreteSyntaxTree
 }
 
-func parse(routes: [TokenType : [() -> Bool]]) -> Bool {
+typealias RoutesType = [TokenType : [() -> Bool]]
+func parse(routes: RoutesType) -> Bool {
     guard let route = routes[tokens[0].type] else { // Look ahead 1 token to determine route
         let foundToken = tokens[0] // Valid route not found. Instead found...
         let expected = routes.reduce(""){ $0 == "" ? $1.key.rawValue: $0 + " | " + $1.key.rawValue } // Compile valid routes
@@ -80,18 +81,18 @@ func endChild() -> () -> Bool {
 }
 
 let parseProgram = { return parse(routes: programRoutes) }
-let programRoutes: [TokenType : [() -> Bool]] = [
+let programRoutes: RoutesType = [
     .leftCurlyBrace : [add(child: "Program"), parseBlock, consume(tokenType: .EOP), endChild()] // Program ::== Block $
 ]
 
 let parseBlock = { return parse(routes: blockRoutes) }
-let blockRoutes: [TokenType : [() -> Bool]] = [
+let blockRoutes: RoutesType = [
     .leftCurlyBrace : [add(child: "Block"), consume(tokenType: .leftCurlyBrace), parseStatementList, consume(tokenType: .rightCurlyBrace), endChild()] // Block ::== { StatementList }
 ]
 
 let parseStatementList = { return parse(routes: statementListRoutes) }
 let statementListRoute = [add(child: "StatementList"), parseStatement, parseStatementList, endChild()]
-let statementListRoutes: [TokenType : [() -> Bool]] = [
+let statementListRoutes: RoutesType = [
     .print : statementListRoute,                                                              // Statement ::== PrintStatement
     .id : statementListRoute,                                                                 // Statement ::== AssignmentStatement
     .type : statementListRoute,                                                               // Statement ::== VarDecl
@@ -102,7 +103,7 @@ let statementListRoutes: [TokenType : [() -> Bool]] = [
 ]
 
 let parseStatement = { return parse(routes: statementRoutes) }
-let statementRoutes: [TokenType : [() -> Bool]] = [
+let statementRoutes: RoutesType = [
     .print : [add(child: "Statement"), add(child: "PrintStatement"), consume(tokenType: .print),
               consume(tokenType: .leftParenthesis), parseExpr, consume(tokenType: .rightParenthesis), endChild(), endChild()],                 // Statement ::== PrintStatement
     .id : [add(child: "Statement"), add(child: "AssignmentStatement"), add(child: "Id"), consume(tokenType: .id), endChild(),
@@ -116,7 +117,7 @@ let statementRoutes: [TokenType : [() -> Bool]] = [
 ]
 
 let parseExpr = { return parse(routes: exprRoutes) }
-let exprRoutes: [TokenType : [() -> Bool]] = [
+let exprRoutes: RoutesType = [
     .digit : [add(child: "Expr"), add(child: "IntExpr"), consume(tokenType: .digit), parseIntExpr, endChild(), endChild()], // Expr ::== IntExpr
     .string : [add(child: "Expr"), add(child: "StringExpr"), consume(tokenType: .string), endChild(), endChild()],          // Expr ::== StringExpr
     .leftParenthesis : [add(child: "Expr"), parseBooleanExpr, endChild()],                                                  // Expr ::== ( Expr boolop Expr )
@@ -125,19 +126,19 @@ let exprRoutes: [TokenType : [() -> Bool]] = [
 ]
 
 let parseIntExpr = { return tokens[0].type == .addition ? parse(routes: intExprRoutes) : true }
-let intExprRoutes: [TokenType : [() -> Bool]] = [
+let intExprRoutes: RoutesType = [
     .addition : [consume(tokenType: .addition), parseExpr] // IntExpr ::== digit intop Expr
 ]
 
 let parseBooleanExpr = { return parse(routes: booleanExprRoutes) }
-let booleanExprRoutes: [TokenType : [() -> Bool]] = [
+let booleanExprRoutes: RoutesType = [
     .leftParenthesis : [add(child: "BooleanExpr"), consume(tokenType: .leftParenthesis), parseExpr,
                         parseBoolop, parseExpr, consume(tokenType: .rightParenthesis), endChild()], // BooleanExpr ::== ( Expr boolop Expr )
     .boolean : [add(child: "BooleanExpr"), consume(tokenType: .boolean), endChild()]                // BooleanExpr ::== boolval
 ]
 
 let parseBoolop = { return parse(routes: boolopRoutes) }
-let boolopRoutes: [TokenType : [() -> Bool]] = [
+let boolopRoutes: RoutesType = [
     .equality : [add(child: "Boolop"), consume(tokenType: .equality), endChild()],    // boolop ::== ==
     .inequality : [add(child: "Boolop"), consume(tokenType: .inequality), endChild()] // boolop ::== !=
 ]

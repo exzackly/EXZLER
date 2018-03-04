@@ -101,6 +101,10 @@ guard let program = parseSourceFromFile(filename: inputFilename) else {
     exit(1) // Exit code 1 indicates input file not found
 }
 
+if isVerboseMode {
+    print(program + "\n")
+}
+
 guard let tokens = lex(program: program, verbose: isVerboseMode) else {
     exit(2) // Exit code 2 indicates lex error
 }

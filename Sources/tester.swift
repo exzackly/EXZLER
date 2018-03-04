@@ -31,8 +31,8 @@ let lexingTests = [
 
 func testLexing() {
     for test in lexingTests {
+        print(test + "\n")
         _ = lex(program: test, verbose: true)
-        print()
     }
 }
 
@@ -57,8 +57,8 @@ let parsingTests = [
 
 func testParsing() {
     for test in parsingTests {
+        print(test + "\n")
         let tokens = lex(program: test, verbose: true)!
-        _ = parse(tokens: tokens)
-        print()
+        _ = parse(tokens: tokens, verbose: true)
     }
 }
