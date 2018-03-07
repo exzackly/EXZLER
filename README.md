@@ -17,6 +17,7 @@ RUN:
 -f FILENAME : specifies filename. Filename must follow -f flag
 -v : specifies verbose mode
 -l : specifies test lexing
+-p : specifies test parsing
 ```
 
 [example] (read source from file FILENAME, and verbosely print results)
@@ -26,5 +27,5 @@ Distrib/release/EXZLER -f FILENAME -v
 
 [testing] Test cases are partially automated and documented in 'tester.swift'. Run with...
 ```
-Distrib/release/EXZLER -l
+Distrib/release/EXZLER -p
 ```

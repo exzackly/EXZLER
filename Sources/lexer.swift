@@ -61,9 +61,12 @@ func lex(program: String, verbose: Bool = false) -> [Token]? {
                 continue
             }
             let newToken = Token(type: match.tokenType, data: match.substring, lineNumber: lineNumber+1) // local lineNumber 0-indexed
+            if verbose {
+                print("LEXER -> \(newToken)")
+            }
             tokens.append(newToken)
         }
-
+        print()
     }
     
     // Program needs at least 1 token
@@ -74,9 +77,6 @@ func lex(program: String, verbose: Bool = false) -> [Token]? {
     
     if verbose {
         print("Found \(tokens.count) tokens")
-        for token in tokens {
-            print("LEXER -> \(token)")
-        }
     }
     
     // Check if program ended with EOP [ $ ]. Issue warning and add if not

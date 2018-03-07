@@ -10,24 +10,34 @@ import Foundation
 var tokens: [Token]!
 var concreteSyntaxTree: Tree<String>!
 var verbose: Bool!
+var symbolTable: [(type: String, name: String)] = [] //TODO: REMOVE IN PROJECT 3. SYMBOL TABLE SHOULD BE CONSTRUCTED IN SEMANTIC ANALYSIS
 
 func parse(tokens passedTokens: [Token], verbose isVerbose: Bool = false) -> Tree<String>? {
     tokens = passedTokens
     concreteSyntaxTree = Tree(data: "<Root>")
     verbose = isVerbose
+
+    //TODO: REMOVE IN PROJECT 3. SYMBOL TABLE SHOULD BE CONSTRUCTED IN SEMANTIC ANALYSIS
+    for (i, token) in tokens.enumerated() {
+        if token.type == .type && i+1 < tokens.count && tokens[i+1].type == .id {
+            symbolTable.append((type: token.data, name: tokens[i+1].data))
+        }
+    }
     
     while !tokens.isEmpty {
         guard parseProgram() else {
-            print("Parsing completed with 0 warning(s) and 1 error(s)\nCST skipped due to parse errors\n")
+            print("Parsing completed with 0 warning(s) and 1 error(s)\n\nCST skipped due to parse errors\n")
             return nil
         }
+        print()
     }
     
     // Print result regardless of verbose
     print("Parsing completed with 0 warning(s) and 0 error(s)\n")
     
     if verbose {
-        print(concreteSyntaxTree)
+        print("\(concreteSyntaxTree)\n")
+        print("(not really) symbol table':\(symbolTable)\n") //TODO: REMOVE IN PROJECT 3. SYMBOL TABLE SHOULD BE CONSTRUCTED IN SEMANTIC ANALYSIS
     }
     
     return concreteSyntaxTree
