@@ -9,20 +9,14 @@ import Foundation
 
 var tokens: [Token]!
 var concreteSyntaxTree: Tree<String>!
+var abstractSyntaxTree: Tree<String>!
 var verbose: Bool!
-var symbolTable: [(type: String, name: String)] = [] //TODO: REMOVE IN PROJECT 3. SYMBOL TABLE SHOULD BE CONSTRUCTED IN SEMANTIC ANALYSIS
 
 func parse(tokens passedTokens: [Token], verbose isVerbose: Bool = false) -> Tree<String>? {
     tokens = passedTokens
-    concreteSyntaxTree = Tree(data: "<Root>")
+    concreteSyntaxTree = Tree(data: "<CST>")
+    abstractSyntaxTree = Tree(data: "<AST>")
     verbose = isVerbose
-
-    //TODO: REMOVE IN PROJECT 3. SYMBOL TABLE SHOULD BE CONSTRUCTED IN SEMANTIC ANALYSIS
-    for (i, token) in tokens.enumerated() {
-        if token.type == .type && i+1 < tokens.count && tokens[i+1].type == .id {
-            symbolTable.append((type: token.data, name: tokens[i+1].data))
-        }
-    }
     
     while !tokens.isEmpty {
         guard parseProgram() else {
@@ -36,11 +30,11 @@ func parse(tokens passedTokens: [Token], verbose isVerbose: Bool = false) -> Tre
     print("Parsing completed with 0 warning(s) and 0 error(s)\n")
     
     if verbose {
-        print("\(concreteSyntaxTree)\n")
-        print("(not really) symbol table':\(symbolTable)\n") //TODO: REMOVE IN PROJECT 3. SYMBOL TABLE SHOULD BE CONSTRUCTED IN SEMANTIC ANALYSIS
+        print("\(concreteSyntaxTree!)\n")
+        print("\(abstractSyntaxTree!)\n")
     }
     
-    return concreteSyntaxTree
+    return abstractSyntaxTree
 }
 
 typealias RoutesType = [TokenType : [() -> Bool]]
@@ -69,6 +63,12 @@ func consume(tokenType: TokenType) -> () -> Bool {
         let token = tokens.removeFirst() // Consume token
         concreteSyntaxTree.addChild(data: "[ \(token.data) ]") // Add token to CST
         concreteSyntaxTree.endChild()
+        
+        if [.equality, .inequality, .type, .boolean, .digit, .string, .id].contains(tokenType) { // Only add important tokens to AST
+            abstractSyntaxTree.addChild(data: "[ \(token.data) ]") // Add token to AST
+            abstractSyntaxTree.endChild()
+        }
+
         if verbose {
             print("PARSER -> Expecting [ \(tokenType.rawValue) ] found [ \(token.data) ] on line \(token.lineNumber)")
         }
@@ -76,28 +76,39 @@ func consume(tokenType: TokenType) -> () -> Bool {
     }
 }
 
-func add(child: String) -> () -> Bool {
+func add(child: String, isConcrete: Bool = true, isAbstract: Bool = false) -> () -> Bool {
     return { // Return () -> Bool closure that adds specified child to concreteSyntaxTree
-        concreteSyntaxTree.addChild(data: "<\(child)>")
+        if isConcrete {
+           concreteSyntaxTree.addChild(data: "<\(child)>")
+        }
+        if isAbstract {
+            abstractSyntaxTree.addChild(data: "<\(child)>")
+        }
         return true
     }
 }
 
-func endChild() -> () -> Bool {
+func endChild(isConcrete: Bool = true, isAbstract: Bool = false) -> () -> Bool {
     return { // Return () -> Bool closure that ends child to concreteSyntaxTree
-        concreteSyntaxTree.endChild()
+        if isConcrete {
+            concreteSyntaxTree.endChild()
+        }
+        if isAbstract {
+            abstractSyntaxTree.endChild()
+        }
         return true
     }
 }
 
 let parseProgram = { return parse(routes: programRoutes) }
 let programRoutes: RoutesType = [
-    .leftCurlyBrace : [add(child: "Program"), parseBlock, consume(tokenType: .EOP), endChild()] // Program ::== Block $
+    .leftCurlyBrace : [add(child: "Program", isAbstract: true), parseBlock, consume(tokenType: .EOP), endChild(isAbstract: true)] // Program ::== Block $
 ]
 
 let parseBlock = { return parse(routes: blockRoutes) }
 let blockRoutes: RoutesType = [
-    .leftCurlyBrace : [add(child: "Block"), consume(tokenType: .leftCurlyBrace), parseStatementList, consume(tokenType: .rightCurlyBrace), endChild()] // Block ::== { StatementList }
+    .leftCurlyBrace : [add(child: "Block", isAbstract: true), consume(tokenType: .leftCurlyBrace),
+                       parseStatementList, consume(tokenType: .rightCurlyBrace), endChild(isAbstract: true)] // Block ::== { StatementList }
 ]
 
 let parseStatementList = { return parse(routes: statementListRoutes) }
@@ -114,30 +125,32 @@ let statementListRoutes: RoutesType = [
 
 let parseStatement = { return parse(routes: statementRoutes) }
 let statementRoutes: RoutesType = [
-    .print : [add(child: "Statement"), add(child: "PrintStatement"), consume(tokenType: .print),
-              consume(tokenType: .leftParenthesis), parseExpr, consume(tokenType: .rightParenthesis), endChild(), endChild()],                 // Statement ::== PrintStatement
-    .id : [add(child: "Statement"), add(child: "AssignmentStatement"), add(child: "Id"), consume(tokenType: .id), endChild(),
-           consume(tokenType: .assignment), parseExpr, endChild(), endChild()],                                                                // Statement ::== AssignmentStatement
-    .type : [add(child: "Statement"), add(child: "VarDecl"), add(child: "Type"), consume(tokenType: .type), endChild(),
-             add(child: "Id"), consume(tokenType: .id), endChild(), endChild(), endChild()],                                                   // Statement ::== VarDecl
-    .while : [add(child: "Statement"), add(child: "WhileStatement"), consume(tokenType: .while), parseBooleanExpr, parseBlock,
-              endChild(), endChild()],                                                                                                         // Statement ::== WhileStatement
-    .if : [add(child: "Statement"), add(child: "IfStatement"), consume(tokenType: .if), parseBooleanExpr, parseBlock, endChild(), endChild()], // Statement ::== IfStatement
-    .leftCurlyBrace : [add(child: "Statement"), parseBlock, endChild()]                                                                        // Statement ::== Block
+    .print : [add(child: "Statement"), add(child: "PrintStatement", isAbstract: true), consume(tokenType: .print),
+              consume(tokenType: .leftParenthesis), parseExpr, consume(tokenType: .rightParenthesis), endChild(isAbstract: true), endChild()],   // Statement ::== PrintStatement
+    .id : [add(child: "Statement"), add(child: "AssignmentStatement", isAbstract: true), add(child: "Id"), consume(tokenType: .id), endChild(),
+           consume(tokenType: .assignment), parseExpr, endChild(isAbstract: true), endChild()],                                                  // Statement ::== AssignmentStatement
+    .type : [add(child: "Statement"), add(child: "VarDecl", isAbstract: true), add(child: "Type"), consume(tokenType: .type), endChild(),
+             add(child: "Id"), consume(tokenType: .id), endChild(), endChild(isAbstract: true), endChild()],                                     // Statement ::== VarDecl
+    .while : [add(child: "Statement"), add(child: "WhileStatement", isAbstract: true), consume(tokenType: .while), parseBooleanExpr, parseBlock,
+              endChild(isAbstract: true), endChild()],                                                                                           // Statement ::== WhileStatement
+    .if : [add(child: "Statement"), add(child: "IfStatement", isAbstract: true), consume(tokenType: .if), parseBooleanExpr, parseBlock,
+           endChild(isAbstract: true), endChild()],                                                                                              // Statement ::== IfStatement
+    .leftCurlyBrace : [add(child: "Statement"), parseBlock, endChild()]                                                                          // Statement ::== Block
 ]
 
 let parseExpr = { return parse(routes: exprRoutes) }
 let exprRoutes: RoutesType = [
-    .digit : [add(child: "Expr"), add(child: "IntExpr"), consume(tokenType: .digit), parseIntExpr, endChild(), endChild()], // Expr ::== IntExpr
-    .string : [add(child: "Expr"), add(child: "StringExpr"), consume(tokenType: .string), endChild(), endChild()],          // Expr ::== StringExpr
-    .leftParenthesis : [add(child: "Expr"), parseBooleanExpr, endChild()],                                                  // Expr ::== ( Expr boolop Expr )
-    .boolean : [add(child: "Expr"), parseBooleanExpr, endChild()],                                                          // Expr ::== boolval
-    .id : [add(child: "Expr"), add(child: "Id"), consume(tokenType: .id), endChild(), endChild()]                           // Expr ::== Id
+    .digit : [add(child: "Expr"), add(child: "IntExpr"), parseIntExpr, endChild(), endChild()],                    // Expr ::== IntExpr
+    .string : [add(child: "Expr"), add(child: "StringExpr"), consume(tokenType: .string), endChild(), endChild()], // Expr ::== StringExpr
+    .leftParenthesis : [add(child: "Expr"), parseBooleanExpr, endChild()],                                         // Expr ::== ( Expr boolop Expr )
+    .boolean : [add(child: "Expr"), parseBooleanExpr, endChild()],                                                 // Expr ::== boolval
+    .id : [add(child: "Expr"), add(child: "Id"), consume(tokenType: .id), endChild(), endChild()]                  // Expr ::== Id
 ]
 
-let parseIntExpr = { return tokens[0].type == .addition ? parse(routes: intExprRoutes) : true }
+let parseIntExpr = { return tokens.count > 1 && tokens[1].type == .addition ? parse(routes: intExprRoutes) : consume(tokenType: .digit)() }
 let intExprRoutes: RoutesType = [
-    .addition : [consume(tokenType: .addition), parseExpr] // IntExpr ::== digit intop Expr
+    .digit : [add(child: "Addition", isConcrete: false, isAbstract: true), consume(tokenType: .digit),
+              consume(tokenType: .addition), parseExpr, endChild(isConcrete: false, isAbstract: true)] // IntExpr ::== digit intop Expr
 ]
 
 let parseBooleanExpr = { return parse(routes: booleanExprRoutes) }
