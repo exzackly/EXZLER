@@ -1,5 +1,5 @@
 //
-//  String+substrings.swift
+//  String+matches.swift
 //  EXZLER
 //
 //  Created by EXZACKLY on 2/2/18.

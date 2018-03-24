@@ -1,5 +1,5 @@
 //
-//  tree.swift
+//  Tree.swift
 //  EXZLER
 //
 //  Created by EXZACKLY on 3/3/18.
@@ -10,7 +10,7 @@ import Foundation
 class Tree<T>: CustomStringConvertible {
     
     class TreeNode<T>: CustomStringConvertible {
-        let data: T
+        var data: T
         var parent: TreeNode? = nil
         var children: [TreeNode] = []
         
