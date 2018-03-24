@@ -1,5 +1,5 @@
 //
-//  parseSource.swift
+//  readFromFile.swift
 //  EXZLER
 //
 //  Created by EXZACKLY on 1/25/18.
@@ -18,7 +18,7 @@ private func readFromFile(filename: String) -> String? {
     }
 }
 
-func parseSourceFromFile(filename: String) -> String? {
+func read(filename: String) -> String? {
     guard let fileContents = readFromFile(filename: filename) else {
         print(filename + " could not be found")
         return nil
