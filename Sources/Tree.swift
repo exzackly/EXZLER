@@ -6,25 +6,25 @@
 //
 
 import Foundation
+class TreeNode<T>: CustomStringConvertible {
+    var data: T
+    var parent: TreeNode? = nil
+    var children: [TreeNode] = []
+    
+    var description: String {
+        return "\(data)"
+    }
+    
+    init(data: T) {
+        self.data = data
+    }
+}
 
 class Tree<T>: CustomStringConvertible {
     
-    class TreeNode<T>: CustomStringConvertible {
-        var data: T
-        var parent: TreeNode? = nil
-        var children: [TreeNode] = []
-        
-        var description: String {
-            return "\(data)"
-        }
-        
-        init(data: T) {
-            self.data = data
-        }
-    }
-    
     let root: TreeNode<T>
     var current: TreeNode<T>
+    var printMethod: ((TreeNode<T>) -> String)? = nil
     
     init(data: T) {
         self.root = TreeNode(data: data)
@@ -51,7 +51,7 @@ class Tree<T>: CustomStringConvertible {
         for _ in 0..<depth {
             expanded += "-"
         }
-        expanded += "\(node.data)\n"
+        expanded += printMethod?(node) ?? "\(node.data)\n"
         for child in node.children {
             expanded += expand(node: child, depth: depth+1)
         }

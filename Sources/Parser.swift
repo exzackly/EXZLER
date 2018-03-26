@@ -7,17 +7,20 @@
 
 import Foundation
 
+typealias ASTNode = (name: String, lineNumber: Int)
+
 class Parser {
     
     private static var tokens: [Token]!
-    private static var concreteSyntaxTree: Tree<String>!
-    private static var abstractSyntaxTree: Tree<String>!
+    private static var concreteSyntaxTree = Tree(data: "<CST>")
+    private static var abstractSyntaxTree = Tree(data: (name: "<AST>", lineNumber: 0))
     private static var verbose: Bool!
     
-    static func parse(tokens passedTokens: [Token], verbose isVerbose: Bool = false) -> Tree<String>? {
+    static func parse(tokens passedTokens: [Token], verbose isVerbose: Bool = false) -> Tree<ASTNode>? {
         tokens = passedTokens
         concreteSyntaxTree = Tree(data: "<CST>")
-        abstractSyntaxTree = Tree(data: "<AST>")
+        abstractSyntaxTree = Tree(data: (name: "<AST>", lineNumber: 0))
+        abstractSyntaxTree.printMethod = { node in return "\(node.data.name)\n" }
         verbose = isVerbose
         
         while !tokens.isEmpty {
@@ -30,6 +33,8 @@ class Parser {
         
         // Print result regardless of verbose
         print("Parsing completed with 0 warning(s) and 0 error(s)\n")
+        
+        abstractSyntaxTree = liftBoolops(AST: abstractSyntaxTree) // Lift boolops
         
         if verbose {
             print("\(concreteSyntaxTree)\n")
@@ -67,7 +72,8 @@ class Parser {
             concreteSyntaxTree.endChild()
             
             if [.equality, .inequality, .type, .boolean, .digit, .string, .id].contains(tokenType) { // Only add important tokens to AST
-                abstractSyntaxTree.addChild(data: "[ \(token.data) ]") // Add token to AST
+                let ASTNode = (name: "[ \(token.data) ]", lineNumber: token.lineNumber)
+                abstractSyntaxTree.addChild(data: ASTNode) // Add token to AST
                 abstractSyntaxTree.endChild()
             }
             
@@ -84,7 +90,8 @@ class Parser {
                 concreteSyntaxTree.addChild(data: "<\(child)>")
             }
             if isAbstract {
-                abstractSyntaxTree.addChild(data: "<\(child)>")
+                let ASTNode = (name: "<\(child)>", lineNumber: tokens[0].lineNumber)
+                abstractSyntaxTree.addChild(data: ASTNode)
             }
             return true
         }
@@ -157,9 +164,10 @@ class Parser {
     
     private static let parseBooleanExpr = { return parse(routes: booleanExprRoutes) }
     private static let booleanExprRoutes: RoutesType = [
-        .leftParenthesis : [add(child: "BooleanExpr"), consume(tokenType: .leftParenthesis), parseExpr,
-                            parseBoolop, parseExpr, consume(tokenType: .rightParenthesis), endChild()], // BooleanExpr ::== ( Expr boolop Expr )
-        .boolean : [add(child: "BooleanExpr"), consume(tokenType: .boolean), endChild()]                // BooleanExpr ::== boolval
+        .leftParenthesis : [add(child: "BooleanExpr"), add(child: "Boolop", isConcrete: false, isAbstract: true),
+                            consume(tokenType: .leftParenthesis), parseExpr, parseBoolop, parseExpr,
+                            consume(tokenType: .rightParenthesis), endChild(isConcrete: false, isAbstract: true), endChild()], // BooleanExpr ::== ( Expr boolop Expr )
+        .boolean : [add(child: "BooleanExpr"), consume(tokenType: .boolean), endChild()]                                       // BooleanExpr ::== boolval
     ]
     
     private static let parseBoolop = { return parse(routes: boolopRoutes) }
@@ -167,5 +175,20 @@ class Parser {
         .equality : [add(child: "Boolop"), consume(tokenType: .equality), endChild()],    // boolop ::== ==
         .inequality : [add(child: "Boolop"), consume(tokenType: .inequality), endChild()] // boolop ::== !=
     ]
+    
+    private static func liftBoolops(AST: Tree<ASTNode>) -> Tree<ASTNode> {
+        var queue = [AST.root] // Loop over AST
+        while !queue.isEmpty {
+            let currentNode = queue[0]
+            queue += currentNode.children
+            if currentNode.key == "Boolop" { // Locate Boolop subtrees
+                let liftedName = currentNode.children[1].key == "==" ? "<Equality>" : "<Inequality>"
+                currentNode.data.name = liftedName // Lift boolop
+                currentNode.children = [currentNode.children[0], currentNode.children[2]] // Fold children
+            }
+            queue.remove(at: 0)
+        }
+        return AST
+    }
     
 }
