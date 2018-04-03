@@ -48,4 +48,6 @@ guard let AST = Parser.parse(tokens: tokens, verbose: isVerboseMode) else {
     exit(3) // Exit code 3 indicates parse error
 }
 
-semanticAnalyze(tokens: tokens)
+guard let symbolTable = SemanticAnalyzer.analyze(AST: AST, verbose: isVerboseMode) else {
+    exit(4) // Exit code 4 indicates semantic analysis error
+}
