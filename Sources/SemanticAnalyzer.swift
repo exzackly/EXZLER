@@ -81,14 +81,13 @@ class SemanticAnalyzer {
             return nil
         }
         
-        //TODO: detect warnings from symbol table
-        let warningCount = 0 // symbolTable.check()
+        let warningCount = symbolTable.check()
         
         // Print result regardless of verbose
         print("Semantic analyzing completed with \(warningCount) warning(s) and 0 error(s)\n")
         
         if isVerbose {
-            print("\(symbolTable)\n")
+            print("\(symbolTable)")
         }
         
         return symbolTable
