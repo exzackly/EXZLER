@@ -24,7 +24,7 @@ class Parser {
         messenger.verbose = isVerbose
         
         guard parseProgram() else {
-            messenger.message(type: .system, message: "Parsing completed with 0 warning(s) and 1 error(s)\n\nCST skipped due to parse errors\n", override: true)
+            messenger.message(type: .system, message: "Parsing completed with 0 warning(s) and 1 error(s)\n\nCST skipped due to parse errors\n\nAST skipped due to parse errors\n", override: true)
             return nil
         }
         

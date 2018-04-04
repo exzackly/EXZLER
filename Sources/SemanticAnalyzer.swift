@@ -109,8 +109,8 @@ class SemanticAnalyzer {
         } else {                                                                  // Expr ::== Id
             foundType = checkId(node: node, checkType: .use)
         }
-        guard expectedType == nil || expectedType == foundType else {
-            messenger.message(type: .error, message: messageTemplate(expectedType!.rawValue, node.key, node.data.lineNumber) + errorTemplate())
+        guard foundType != nil && (expectedType == nil || expectedType == foundType) else {
+            messenger.message(type: .error, message: messageTemplate(expectedType?.rawValue ?? "Any", node.key, node.data.lineNumber) + errorTemplate())
             return nil
         }
         messenger.message(type: .success, message: messageTemplate(expectedType?.rawValue ?? "Any", node.key, node.data.lineNumber))
@@ -138,7 +138,7 @@ class SemanticAnalyzer {
     
     private static func checkId(node: TreeNode<ASTNode>, checkType: CheckType) -> VarType? {
         guard let expectedType = symbolTable.checkCurrent(key: node.key, checkType: checkType) else { // Lookup variable and get type
-            messenger.message(type: .error, message: "Variable [ \(node.key) ] on line \(node.data.lineNumber) assigned before it is declared" + errorTemplate())
+            messenger.message(type: .error, message: "Variable [ \(node.key) ] on line \(node.data.lineNumber) used before it is declared" + errorTemplate())
             return nil
         }
         return expectedType

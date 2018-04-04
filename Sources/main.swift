@@ -52,7 +52,7 @@ for (i, program) in programs.split(separator: "`").enumerated() {
         exit(3) // Exit code 3 indicates parse error
     }
     
-    guard let symbolTable = SemanticAnalyzer.analyze(AST: AST, verbose: isVerboseMode) else {
+    guard SemanticAnalyzer.analyze(AST: AST, verbose: isVerboseMode) != nil else {
         exit(4) // Exit code 4 indicates semantic analysis error
     }
 }

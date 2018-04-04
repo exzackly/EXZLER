@@ -47,7 +47,14 @@ class Lexer {
         var warningCount = 0
  
         // Strip comments. Need to do here in case comment in string (char list)
-        let program = program.replacingOccurrences(of: "\\/\\*(.|\\s)*?\\*\\/", with: "", options: .regularExpression)
+        var program = program
+        while true {
+            guard let commentRange = program.range(of: "\\/\\*(.|\\s)*?\\*\\/", options: .regularExpression) else {
+                break
+            }
+            let newlineCount = String(program[commentRange]).matches(forPattern: "\n").count
+            program.replaceSubrange(commentRange, with: String(repeating: "\n", count: newlineCount))
+        }
         
         // Break input into lines to provide line numbers for warnings and errors
         let programLines = program.components(separatedBy: "\n")
