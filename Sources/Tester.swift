@@ -13,7 +13,7 @@ class Tester {
         case lexing
         case parsing
         case semanticAnalyzing
-        case codeGenerating
+        case codeGenerator
     }
     
     static func test(_ tests: [Tests]) {
@@ -25,7 +25,7 @@ class Tester {
                 testParsing()
             case .semanticAnalyzing:
                 testSemanticAnalyzing()
-            case .codeGenerating:
+            case .codeGenerator:
                 break
             }
         }

@@ -66,24 +66,27 @@ class SymbolTable: Tree<[String: ScopeType]> {
         return node.data[key]?.type ?? (node.parent != nil ? checkCurrent(key: key, checkType: checkType, node: node.parent) : nil)
     }
     
-    func check(node: TreeNode<[String: ScopeType]>? = nil) -> Int {
+    func check(node: TreeNode<[String: ScopeType]>? = nil) -> (Int, [String]) {
         var warningCount = 0
+        var warningMessages = [String]()
         let node = node ?? root
         
         for (variable, data) in node.data.sorted(by: { $0.key < $1.key }) {
             if !data.isInitialized {
                 warningCount += 1
-                print("WARNING: Variable [ \(variable) ] declared on line \(data.lineNumber) was not initialized")
+                warningMessages.append("Variable [ \(variable) ] declared on line \(data.lineNumber) was not initialized")
             } else if !data.isUsed {
                 warningCount += 1
-                print("WARNING: Variable [ \(variable) ] declared on line \(data.lineNumber) has been initialized but was not used")
+                warningMessages.append("Variable [ \(variable) ] declared on line \(data.lineNumber) has been initialized but was not used")
             }
         }
         for child in node.children {
-            warningCount += check(node: child)
+            let (newWarningCount, newWarningMessages) = check(node: child)
+            warningCount += newWarningCount
+            warningMessages += newWarningMessages
         }
         
-        return warningCount
+        return (warningCount, warningMessages)
     }
     
 }

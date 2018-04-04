@@ -38,10 +38,14 @@ class Lexer {
     
     private static let coalescedRegularExpression = symbols.reduce(""){ $0 == "" ? "(\($1.regularExpression))" : $0 + "|" + "(\($1.regularExpression))" }
     
-    static func lex(program: String, verbose: Bool = false) -> [Token]? {
+    private static let messenger = Messenger(prefix: "LEXER -> ")
+    
+    static func lex(program: String, verbose isVerbose: Bool = false) -> [Token]? {
+        messenger.verbose = isVerbose
+        
         var tokens: [Token] = []
         var warningCount = 0
-        
+ 
         // Strip comments. Need to do here in case comment in string (char list)
         let program = program.replacingOccurrences(of: "\\/\\*(.|\\s)*?\\*\\/", with: "", options: .regularExpression)
         
@@ -56,30 +60,24 @@ class Lexer {
             
             for match in extractedMatches {
                 if match.tokenType == .invalid { // Catch errors
-                    print("ERROR: Invalid token [\(match.substring)] on line \(lineNumber+1)") // local lineNumber 0-indexed
-                    print("Lexing failed with \(warningCount) warning(s) and 1 error(s)")
+                    messenger.message(type: .error, message: "Invalid token [\(match.substring)] on line \(lineNumber+1)\nLexing failed with \(warningCount) warning(s) and 1 error(s)") // local lineNumber 0-indexed
                     return nil
                 } else if match.tokenType == .space { // Skip whitespace
                     continue
                 }
                 let newToken = Token(type: match.tokenType, data: match.substring, lineNumber: lineNumber+1) // local lineNumber 0-indexed
-                if verbose {
-                    print("LEXER -> \(newToken)")
-                }
+                messenger.message(type: .success, message: newToken.description)
                 tokens.append(newToken)
             }
-            print()
         }
         
         // Program needs at least 1 token
         guard tokens.count > 0 else {
-            print("ERROR: Input did not generate any valid tokens")
+            messenger.message(type: .error, message: "Input did not generate any valid tokens\nLexing failed with \(warningCount) warning(s) and 1 error(s)")
             return nil
         }
         
-        if verbose {
-            print("Found \(tokens.count) tokens")
-        }
+        messenger.message(type: .system, message: "Found \(tokens.count) tokens")
         
         // Check if program ended with EOP [ $ ]. Issue warning and add if not
         if tokens.last?.type != .EOP {
@@ -87,11 +85,11 @@ class Lexer {
             let EOPToken = Token(type: .EOP, data: "$", lineNumber: lastLine)
             tokens.append(EOPToken)
             warningCount += 1
-            print("WARNING: EOP [ $ ] not found. Adding to end of file on line \(lastLine)")
+            messenger.message(type: .warning, message: "EOP [ $ ] not found. Adding to end of file on line \(lastLine)")
         }
         
         // Print result regardless of verbose
-        print("Lexing completed with \(warningCount) warning(s) and 0 error(s)\n")
+        messenger.message(type: .system, message: "Lexing completed with \(warningCount) warning(s) and 0 error(s)\n", override: true)
         
         return tokens
     }

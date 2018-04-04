@@ -14,32 +14,27 @@ class Parser {
     private static var tokens: [Token]!
     private static var concreteSyntaxTree = Tree(data: "<CST>")
     private static var abstractSyntaxTree = Tree(data: (name: "<AST>", lineNumber: 0))
-    private static var verbose: Bool!
+    private static let messenger = Messenger(prefix: "PARSER -> ")
     
     static func parse(tokens passedTokens: [Token], verbose isVerbose: Bool = false) -> Tree<ASTNode>? {
         tokens = passedTokens
         concreteSyntaxTree = Tree(data: "<CST>")
         abstractSyntaxTree = Tree(data: (name: "<AST>", lineNumber: 0))
         abstractSyntaxTree.printMethod = { node in return "\(node.data.name)\n" }
-        verbose = isVerbose
+        messenger.verbose = isVerbose
         
-        while !tokens.isEmpty {
-            guard parseProgram() else {
-                print("Parsing completed with 0 warning(s) and 1 error(s)\n\nCST skipped due to parse errors\n")
-                return nil
-            }
-            print()
+        guard parseProgram() else {
+            messenger.message(type: .system, message: "Parsing completed with 0 warning(s) and 1 error(s)\n\nCST skipped due to parse errors\n", override: true)
+            return nil
         }
         
         // Print result regardless of verbose
-        print("Parsing completed with 0 warning(s) and 0 error(s)\n")
+        messenger.message(type: .system, message: "Parsing completed with 0 warning(s) and 0 error(s)\n", override: true)
         
         abstractSyntaxTree = liftBoolops(AST: abstractSyntaxTree) // Lift boolops
         
-        if verbose {
-            print("\(concreteSyntaxTree)\n")
-            print("\(abstractSyntaxTree)\n")
-        }
+        messenger.message(type: .system, message: "\(concreteSyntaxTree)")
+        messenger.message(type: .system, message: "\(abstractSyntaxTree)")
         
         return abstractSyntaxTree
     }
@@ -49,7 +44,7 @@ class Parser {
         guard let route = routes[tokens[0].type] else { // Look ahead 1 token to determine route
             let foundToken = tokens[0] // Valid route not found. Instead found...
             let expected = routes.reduce(""){ $0 == "" ? $1.key.rawValue: $0 + " | " + $1.key.rawValue } // Compile valid routes
-            print("ERROR: Expecting [ \(expected) ] found [ \(foundToken.data) ] on line \(foundToken.lineNumber)")
+            messenger.message(type: .error, message: "Expecting [ \(expected) ] found [ \(foundToken.data) ] on line \(foundToken.lineNumber)")
             return false
         }
         for step in route { // Follow route
@@ -64,7 +59,7 @@ class Parser {
         return { // Return () -> Bool closure that consumes that specified tokenType
             guard tokens[0].type == tokenType else { // Validate expected token
                 let foundToken = tokens[0] // Invalid token found. Instead found...
-                print("ERROR: Expecting [ \(tokenType.rawValue) ] found [ \(foundToken.data) ] on line \(foundToken.lineNumber)")
+                messenger.message(type: .error, message: "Expecting [ \(tokenType.rawValue) ] found [ \(foundToken.data) ] on line \(foundToken.lineNumber)")
                 return false
             }
             let token = tokens.removeFirst() // Consume token
@@ -77,9 +72,7 @@ class Parser {
                 abstractSyntaxTree.endChild()
             }
             
-            if verbose {
-                print("PARSER -> Expecting [ \(tokenType.rawValue) ] found [ \(token.data) ] on line \(token.lineNumber)")
-            }
+            messenger.message(type: .success, message: "PARSER -> Expecting [ \(tokenType.rawValue) ] found [ \(token.data) ] on line \(token.lineNumber)")
             return true
         }
     }

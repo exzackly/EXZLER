@@ -27,28 +27,32 @@ Tester.test(tests)
 
 guard let filenameFlagIndex = CommandLine.arguments.index(of: FILENAME_FLAG),
     CommandLine.arguments.count > filenameFlagIndex+1 else {
-    exit(0) // Filename not specified
+        exit(0) // Filename not specified
 }
 
 let inputFilename = CommandLine.arguments[filenameFlagIndex+1]
 let isVerboseMode = CommandLine.arguments.contains(VERBOSE_FLAG)
 
-guard let program = read(filename: inputFilename) else {
+guard var programs = read(filename: inputFilename) else {
     exit(1) // Exit code 1 indicates input file not found
 }
 
-if isVerboseMode {
-    print(program + "\n")
-}
+programs = programs.replacingOccurrences(of: "$", with: "$`")
 
-guard let tokens = Lexer.lex(program: program, verbose: isVerboseMode) else {
-    exit(2) // Exit code 2 indicates lex error
-}
-
-guard let AST = Parser.parse(tokens: tokens, verbose: isVerboseMode) else {
-    exit(3) // Exit code 3 indicates parse error
-}
-
-guard let symbolTable = SemanticAnalyzer.analyze(AST: AST, verbose: isVerboseMode) else {
-    exit(4) // Exit code 4 indicates semantic analysis error
+for (i, program) in programs.split(separator: "`").enumerated() {
+    if isVerboseMode {
+        print("Program \(i)\n\(program)\n")
+    }
+    
+    guard let tokens = Lexer.lex(program: String(program), verbose: isVerboseMode) else {
+        exit(2) // Exit code 2 indicates lex error
+    }
+    
+    guard let AST = Parser.parse(tokens: tokens, verbose: isVerboseMode) else {
+        exit(3) // Exit code 3 indicates parse error
+    }
+    
+    guard let symbolTable = SemanticAnalyzer.analyze(AST: AST, verbose: isVerboseMode) else {
+        exit(4) // Exit code 4 indicates semantic analysis error
+    }
 }

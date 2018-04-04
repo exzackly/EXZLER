@@ -37,58 +37,27 @@ class SemanticAnalyzer {
     private static let EQUALITY_NODE = "Equality"
     private static let INEQUALITY_NODE = "Inequality"
     
-    private enum MessageType {
-        case success
-        case error
-    }
-    
-    typealias MessageData = (expecting: String, found: String, lineNumber: Int)
-    
-    private static func message(type: MessageType, data: MessageData? = nil, overrideMessage: String? = nil) {
-        if data == nil && overrideMessage == nil { // data and overrideTemplate cannot both be nil
-            return
-        }
-        switch type {
-        case .success:
-            if !verbose {
-                return
-            }
-            let prefix = "SEMANTIC ANALYZER -> "
-            let message = data != nil ? "Expecting [ \(data!.expecting) ] found [ \(data!.found) ] on line \(data!.lineNumber)" : overrideMessage!
-            print(prefix + message)
-        case .error:
-            if hasPrintedError {
-                return
-            }
-            hasPrintedError = true
-            let prefix = "ERROR: "
-            let message = data != nil ? "Expecting [ \(data!.expecting) ] found [ \(data!.found) ] on line \(data!.lineNumber)" : overrideMessage!
-            print(prefix + message)
-            print("Semantic analyzing completed with 0 warning(s) and 1 error(s)\n")
-        }
-    }
-    
     private static var symbolTable = SymbolTable(data: [:])
-    private static var verbose = false
-    private static var hasPrintedError = false
+    private static let messenger = Messenger(prefix: "SEMANTIC ANALYZER -> ")
     
     static func analyze(AST: Tree<ASTNode>, verbose isVerbose: Bool = false) -> SymbolTable? {
         symbolTable = SymbolTable(data: [:])
-        verbose = isVerbose
-        hasPrintedError = false
+        messenger.verbose = isVerbose
         
         guard checkBlock(node: AST.root.child.child) else { // Isolate main program block
             return nil
         }
         
-        let warningCount = symbolTable.check()
+        let (warningCount, warningMessages) = symbolTable.check()
+        
+        for message in warningMessages {
+            messenger.message(type: .warning, message: message)
+        }
         
         // Print result regardless of verbose
-        print("Semantic analyzing completed with \(warningCount) warning(s) and 0 error(s)\n")
-        
-        if isVerbose {
-            print("\(symbolTable)")
-        }
+        messenger.message(type: .system, message: "Semantic analyzing completed with \(warningCount) warning(s) and 0 error(s)\n", override: true)
+
+        messenger.message(type: .system, message: symbolTable.description)
         
         return symbolTable
     }
@@ -122,6 +91,9 @@ class SemanticAnalyzer {
         return true
     }
     
+    private static let messageTemplate: (String, String, Int) -> String = { (expecting, found, lineNumber) in "Expecting [ \(expecting) ] found [ \(found) ] on line \(lineNumber)" }
+    private static let errorTemplate = { "\nSemantic analyzing completed with 0 warning(s) and 1 error(s)\n\nSymbol Table skipped due to semantic analysis errors\n" }
+    
     private static func checkExpr(node: TreeNode<ASTNode>, expectedType: VarType?) -> VarType? {
         var foundType: VarType? = nil
         if Int(node.key) != nil {                                                 // Expr ::== IntExpr; IntExpr ::== digit
@@ -138,10 +110,10 @@ class SemanticAnalyzer {
             foundType = checkId(node: node, checkType: .use)
         }
         guard expectedType == nil || expectedType == foundType else {
-            message(type: .error, data: (expecting: expectedType!.rawValue, found: node.key, lineNumber: node.data.lineNumber))
+            messenger.message(type: .error, message: messageTemplate(expectedType!.rawValue, node.key, node.data.lineNumber) + errorTemplate())
             return nil
         }
-        message(type: .success, data: (expecting: expectedType?.rawValue ?? "Any", found: node.key, lineNumber: node.data.lineNumber))
+        messenger.message(type: .success, message: messageTemplate(expectedType?.rawValue ?? "Any", node.key, node.data.lineNumber))
         return foundType
     }
     
@@ -149,10 +121,10 @@ class SemanticAnalyzer {
         let type = VarType(rawValue: node.leftChild.key)!
         let value: ScopeType = (type: type, lineNumber: node.leftChild.data.lineNumber, isInitialized: false, isUsed: false)
         guard symbolTable.addCurrent(key: node.rightChild.key, value: value) else { // Assert variable not already declared
-            message(type: .error, overrideMessage: "Variable [ \(node.rightChild.key) ] redeclared on line \(node.rightChild.data.lineNumber)")
+            messenger.message(type: .error, message: "Variable [ \(node.rightChild.key) ] redeclared on line \(node.rightChild.data.lineNumber)" + errorTemplate())
             return false
         }
-        message(type: .success, overrideMessage: "Variable [ \(node.rightChild.key) ] of type [ \(type.rawValue) ] declared on line \(node.rightChild.data.lineNumber)")
+        messenger.message(type: .success, message: "Variable [ \(node.rightChild.key) ] of type [ \(type.rawValue) ] declared on line \(node.rightChild.data.lineNumber)")
         return true
     }
     
@@ -166,7 +138,7 @@ class SemanticAnalyzer {
     
     private static func checkId(node: TreeNode<ASTNode>, checkType: CheckType) -> VarType? {
         guard let expectedType = symbolTable.checkCurrent(key: node.key, checkType: checkType) else { // Lookup variable and get type
-            message(type: .error, overrideMessage: "Variable [ \(node.key) ] on line \(node.data.lineNumber) assigned before it is declared")
+            messenger.message(type: .error, message: "Variable [ \(node.key) ] on line \(node.data.lineNumber) assigned before it is declared" + errorTemplate())
             return nil
         }
         return expectedType
@@ -174,25 +146,25 @@ class SemanticAnalyzer {
     
     private static func checkAddition(node: TreeNode<ASTNode>) -> VarType? {
         guard Int(node.leftChild.key) != nil else { // Assert left child is an integer
-            message(type: .error, data: (expecting: "int", found: node.leftChild.key, lineNumber: node.leftChild.data.lineNumber))
+            messenger.message(type: .error, message: messageTemplate("int", node.leftChild.key, node.leftChild.data.lineNumber) + errorTemplate())
             return nil
         }
-        message(type: .success, data: (expecting: "int", found: node.leftChild.key, lineNumber: node.leftChild.data.lineNumber))
+        messenger.message(type: .success, message: messageTemplate("int", node.leftChild.key, node.leftChild.data.lineNumber))
         guard checkExpr(node: node.rightChild, expectedType: .int) != nil else { // Assert right child evaluates to int
-            message(type: .error, data: (expecting: "int", found: node.rightChild.key, lineNumber: node.rightChild.data.lineNumber))
+            messenger.message(type: .error, message: messageTemplate("int", node.rightChild.key, node.rightChild.data.lineNumber) + errorTemplate())
             return nil
         }
-        message(type: .success, data: (expecting: "int", found: node.rightChild.key, lineNumber: node.rightChild.data.lineNumber))
+        messenger.message(type: .success, message: messageTemplate("int", node.rightChild.key, node.rightChild.data.lineNumber))
         return .int
     }
     
     private static func checkBooleanExpr(node: TreeNode<ASTNode>) -> VarType? {
         guard let foundType = checkExpr(node: node.leftChild, expectedType: nil) else { // Boolops must compare same types; get type of left child
-            message(type: .error, data: (expecting: "Any", found: node.leftChild.key, lineNumber: node.leftChild.data.lineNumber))
+            messenger.message(type: .error, message: messageTemplate("Any", node.leftChild.key, node.leftChild.data.lineNumber) + errorTemplate())
             return nil
         }
         guard checkExpr(node: node.rightChild, expectedType: foundType) != nil else { // Assert right child has same type
-            message(type: .error, data: (expecting: foundType.rawValue, found: node.rightChild.key, lineNumber: node.rightChild.data.lineNumber))
+            messenger.message(type: .error, message: messageTemplate(foundType.rawValue, node.rightChild.key, node.rightChild.data.lineNumber) + errorTemplate())
             return nil
         }
         return .boolean
@@ -206,13 +178,13 @@ class SemanticAnalyzer {
             foundType = .boolean
         }
         guard foundType == .boolean else { // Assert left child is boolean
-            message(type: .error, data: (expecting: "boolean", found: node.leftChild.key, lineNumber: node.leftChild.data.lineNumber))
+            messenger.message(type: .error, message: messageTemplate("boolean", node.leftChild.key, node.leftChild.data.lineNumber) + errorTemplate())
             return false
         }
         guard checkBlock(node: node.rightChild) else { // Recursively check block
             return false
         }
-        message(type: .success, data: (expecting: "boolean", found: node.leftChild.key, lineNumber: node.leftChild.data.lineNumber))
+        messenger.message(type: .success, message: messageTemplate("boolean", node.leftChild.key, node.leftChild.data.lineNumber))
         return true
     }
     
