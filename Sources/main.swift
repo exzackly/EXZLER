@@ -11,13 +11,14 @@ let FILENAME_FLAG = "-f"
 let VERBOSE_FLAG = "-v"
 let TEST_LEXING_FLAG = "-l"
 let TEST_PARSING_FLAG = "-p"
-//let TEST_SEMANTIC_ANALYSIS_FLAG = "-s"
+let TEST_SEMANTIC_ANALYSIS_FLAG = "-s"
 //let TEST_CODE_GEN_FLAG = "-c"
 //let TEST_EXZLER = "-t"
 
 let flagTestPairs: [(String, Tester.Tests)] = [
     (TEST_LEXING_FLAG, .lexing),
-    (TEST_PARSING_FLAG, .parsing)
+    (TEST_PARSING_FLAG, .parsing),
+    (TEST_SEMANTIC_ANALYSIS_FLAG, .semanticAnalyzing)
 ]
 
 let tests = flagTestPairs.filter{ CommandLine.arguments.contains($0.0) }.map { $0.1 }

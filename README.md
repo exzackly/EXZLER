@@ -18,6 +18,7 @@ RUN:
 -v : specifies verbose mode
 -l : specifies test lexing
 -p : specifies test parsing
+-s : specifies test semantic analyzing
 ```
 
 [example] (read source from file FILENAME, and verbosely print results)
@@ -27,5 +28,5 @@ Distrib/release/EXZLER -f FILENAME -v
 
 [testing] Test cases are partially automated and documented in 'tester.swift'. Run with...
 ```
-Distrib/release/EXZLER -p
+Distrib/release/EXZLER -s
 ```
