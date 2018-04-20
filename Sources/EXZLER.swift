@@ -33,6 +33,12 @@ enum TokenType: String {
     case invalid          = "invalid"
 }
 
+enum VarType: String {
+    case int = "int"
+    case boolean = "boolean"
+    case string = "string"
+}
+
 let TokenTypeToDescription: [TokenType : String] = [
     .leftCurlyBrace   : "left curly brace",
     .rightCurlyBrace  : "right curly brace",
