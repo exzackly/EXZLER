@@ -7,18 +7,12 @@
 
 import Foundation
 
-enum VarType: String {
-    case int = "int"
-    case boolean = "boolean"
-    case string = "string"
-}
-
 enum CheckType {
     case initialize
     case use
 }
 
-typealias ScopeType = (type: VarType, lineNumber: Int, isInitialized: Bool, isUsed: Bool)
+typealias ScopeType = (type: VarType, lineNumber: Int, isInitialized: Bool, isUsed: Bool, idIndex: Int?)
 
 class SymbolTable: Tree<[String: ScopeType]> {
     
@@ -56,16 +50,20 @@ class SymbolTable: Tree<[String: ScopeType]> {
         return true
     }
     
-    func checkCurrent(key: String, checkType: CheckType, node: TreeNode<[String: ScopeType]>? = nil) -> VarType? {
+    func checkCurrent(key: String, checkType: CheckType, node: TreeNode<[String: ScopeType]>? = nil) -> (type: VarType, idIndex: Int)? {
         let node = node ?? current
         if checkType == .initialize {
             node.data[key]?.isInitialized = true
         } else {
             node.data[key]?.isUsed = true
         }
-        return node.data[key]?.type ?? (node.parent != nil ? checkCurrent(key: key, checkType: checkType, node: node.parent) : nil)
+        if node.data[key] != nil {
+            return (node.data[key]!.type, node.data[key]!.idIndex!)
+        } else {
+            return node.parent != nil ? checkCurrent(key: key, checkType: checkType, node: node.parent) : nil
+        }
     }
-    
+
     func check(node: TreeNode<[String: ScopeType]>? = nil) -> (Int, [String]) {
         var warningCount = 0
         var warningMessages = [String]()
