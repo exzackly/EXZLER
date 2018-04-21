@@ -7,19 +7,19 @@
 
 import Foundation
 
-typealias ASTNode = (name: String, lineNumber: Int)
+typealias ASTNode = (name: String, lineNumber: Int, type: VarType?, idIndex: Int?)
 
 class Parser {
     
     private static var tokens: [Token]!
     private static var concreteSyntaxTree = Tree(data: "<CST>")
-    private static var abstractSyntaxTree = Tree(data: (name: "<AST>", lineNumber: 0))
+    private static var abstractSyntaxTree = Tree<ASTNode>(data: (name: "<AST>", lineNumber: 0, type: nil, idIndex: nil))
     private static let messenger = Messenger(prefix: "PARSER -> ")
     
     static func parse(tokens passedTokens: [Token], verbose isVerbose: Bool = false) -> Tree<ASTNode>? {
         tokens = passedTokens
         concreteSyntaxTree = Tree(data: "<CST>")
-        abstractSyntaxTree = Tree(data: (name: "<AST>", lineNumber: 0))
+        abstractSyntaxTree = Tree(data: (name: "<AST>", lineNumber: 0, type: nil, idIndex: nil))
         abstractSyntaxTree.printMethod = { node in return "\(node.data.name)\n" }
         messenger.verbose = isVerbose
         
@@ -67,12 +67,12 @@ class Parser {
             concreteSyntaxTree.endChild()
             
             if [.equality, .inequality, .type, .boolean, .digit, .string, .id].contains(tokenType) { // Only add important tokens to AST
-                let ASTNode = (name: "[ \(token.data) ]", lineNumber: token.lineNumber)
+                let ASTNode: ASTNode = (name: "[ \(token.data) ]", lineNumber: token.lineNumber, type: nil, idIndex: nil)
                 abstractSyntaxTree.addChild(data: ASTNode) // Add token to AST
                 abstractSyntaxTree.endChild()
             }
             
-            messenger.message(type: .success, message: "PARSER -> Expecting [ \(tokenType.rawValue) ] found [ \(token.data) ] on line \(token.lineNumber)")
+            messenger.message(type: .success, message: "Expecting [ \(tokenType.rawValue) ] found [ \(token.data) ] on line \(token.lineNumber)")
             return true
         }
     }
@@ -83,7 +83,7 @@ class Parser {
                 concreteSyntaxTree.addChild(data: "<\(child)>")
             }
             if isAbstract {
-                let ASTNode = (name: "<\(child)>", lineNumber: tokens[0].lineNumber)
+                let ASTNode: ASTNode = (name: "<\(child)>", lineNumber: tokens[0].lineNumber, type: nil, idIndex: nil)
                 abstractSyntaxTree.addChild(data: ASTNode)
             }
             return true
