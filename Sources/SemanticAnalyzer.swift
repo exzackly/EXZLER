@@ -38,6 +38,7 @@ class SemanticAnalyzer {
     private static let INEQUALITY_NODE = "Inequality"
     
     private static var symbolTable = SymbolTable(data: [:])
+    private static var idIndex = 0
     private static let messenger = Messenger(prefix: "SEMANTIC ANALYZER -> ")
     
     static func analyze(AST: Tree<ASTNode>, verbose isVerbose: Bool = false) -> SymbolTable? {
@@ -96,17 +97,17 @@ class SemanticAnalyzer {
     
     private static func checkExpr(node: TreeNode<ASTNode>, expectedType: VarType?) -> VarType? {
         var foundType: VarType? = nil
-        if Int(node.key) != nil {                                                 // Expr ::== IntExpr; IntExpr ::== digit
+        if Int(node.key) != nil {                                            // Expr ::== IntExpr; IntExpr ::== digit
             foundType = .int
-        } else if node.key == ADDITION_NODE {                                     // Expr ::== IntExpr; IntExpr ::== digit intop Expr
+        } else if node.key == ADDITION_NODE {                                // Expr ::== IntExpr; IntExpr ::== digit intop Expr
             foundType = checkAddition(node: node)
-        } else if node.key.first == QUOTE_NODE {                                  // Expr ::== StringExpr
+        } else if node.key.first == QUOTE_NODE {                             // Expr ::== StringExpr
             foundType = .string
-        } else if node.key == EQUALITY_NODE || node.key == INEQUALITY_NODE {      // Expr ::== ( Expr boolop Expr )
+        } else if node.key == EQUALITY_NODE || node.key == INEQUALITY_NODE { // Expr ::== ( Expr boolop Expr )
             foundType = checkBooleanExpr(node: node)
-        } else if node.key == TRUE_NODE || node.key == FALSE_NODE {               // Expr ::== boolval
+        } else if node.key == TRUE_NODE || node.key == FALSE_NODE {          // Expr ::== boolval
             foundType = .boolean
-        } else {                                                                  // Expr ::== Id
+        } else {                                                             // Expr ::== Id
             foundType = checkId(node: node, checkType: .use)
         }
         guard foundType != nil && (expectedType == nil || expectedType == foundType) else {
@@ -119,11 +120,14 @@ class SemanticAnalyzer {
     
     private static func checkVarDecl(node: TreeNode<ASTNode>) -> Bool {
         let type = VarType(rawValue: node.leftChild.key)!
-        let value: ScopeType = (type: type, lineNumber: node.leftChild.data.lineNumber, isInitialized: false, isUsed: false)
+        let value: ScopeType = (type: type, lineNumber: node.leftChild.data.lineNumber, isInitialized: false, isUsed: false, idIndex: idIndex)
         guard symbolTable.addCurrent(key: node.rightChild.key, value: value) else { // Assert variable not already declared
             messenger.message(type: .error, message: "Variable [ \(node.rightChild.key) ] redeclared on line \(node.rightChild.data.lineNumber)" + errorTemplate())
             return false
         }
+        node.rightChild.data.type = type
+        node.rightChild.data.idIndex = idIndex
+        idIndex += 1
         messenger.message(type: .success, message: "Variable [ \(node.rightChild.key) ] of type [ \(type.rawValue) ] declared on line \(node.rightChild.data.lineNumber)")
         return true
     }
@@ -137,10 +141,12 @@ class SemanticAnalyzer {
     }
     
     private static func checkId(node: TreeNode<ASTNode>, checkType: CheckType) -> VarType? {
-        guard let expectedType = symbolTable.checkCurrent(key: node.key, checkType: checkType) else { // Lookup variable and get type
+        guard let (expectedType, idIndex) = symbolTable.checkCurrent(key: node.key, checkType: checkType) else { // Lookup variable and get type
             messenger.message(type: .error, message: "Variable [ \(node.key) ] on line \(node.data.lineNumber) used before it is declared" + errorTemplate())
             return nil
         }
+        node.data.type = expectedType
+        node.data.idIndex = idIndex
         return expectedType
     }
     
