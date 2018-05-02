@@ -30,13 +30,6 @@ extension TreeNode where T == ASTNode {
 
 class SemanticAnalyzer {
     
-    private static let ADDITION_NODE = "Addition"
-    private static let TRUE_NODE = "true"
-    private static let FALSE_NODE = "false"
-    private static let QUOTE_NODE: Character = "\""
-    private static let EQUALITY_NODE = "Equality"
-    private static let INEQUALITY_NODE = "Inequality"
-    
     private static var symbolTable = SymbolTable(data: [:])
     private static var idIndex = 0
     private static let messenger = Messenger(prefix: "SEMANTIC ANALYZER -> ")

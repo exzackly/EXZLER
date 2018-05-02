@@ -55,4 +55,11 @@ for (i, program) in programs.split(separator: "`").enumerated() {
     guard SemanticAnalyzer.analyze(AST: AST, verbose: isVerboseMode) != nil else {
         exit(4) // Exit code 4 indicates semantic analysis error
     }
+    
+    guard let code = CodeGenerator.generate(AST: AST, verbose: isVerboseMode) else {
+        exit(5) // Exit code 5 indicates code generate error
+    }
+    
+    print(code)
+
 }

@@ -151,7 +151,7 @@ class Parser {
     
     private static let parseIntExpr = { return tokens.count > 1 && tokens[1].type == .addition ? parse(routes: intExprRoutes) : consume(tokenType: .digit)() }
     private static let intExprRoutes: RoutesType = [
-        .digit : [add(child: "Addition", isConcrete: false, isAbstract: true), consume(tokenType: .digit),
+        .digit : [add(child: ADDITION_NODE, isConcrete: false, isAbstract: true), consume(tokenType: .digit),
                   consume(tokenType: .addition), parseExpr, endChild(isConcrete: false, isAbstract: true)] // IntExpr ::== digit intop Expr
     ]
     

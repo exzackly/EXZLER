@@ -61,7 +61,15 @@ let TokenTypeToDescription: [TokenType : String] = [
     .invalid          : "invalid"
 ]
 
+let ADDITION_NODE = "Addition"
+let TRUE_NODE = "true"
+let FALSE_NODE = "false"
+let QUOTE_NODE: Character = "\""
+let EQUALITY_NODE = "Equality"
+let INEQUALITY_NODE = "Inequality"
+
 class Token: CustomStringConvertible {
+    
     let type: TokenType
     let data: String
     let lineNumber: Int
@@ -81,4 +89,5 @@ class Token: CustomStringConvertible {
         self.data = data
         self.lineNumber = 0
     }
+    
 }
