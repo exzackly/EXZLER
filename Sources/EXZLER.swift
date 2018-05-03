@@ -9,6 +9,42 @@ import Foundation
 
 class EXZLER {
     
+    private static let messenger = Messenger(prefix: "EXZLER")
+    
+    static func compile(input: String, verbose isVerbose: Bool = false) {
+        messenger.verbose = isVerbose
+        // Strip comments while maintaining newlines
+        var programs = input
+        while true {
+            guard let commentRange = programs.range(of: "\\/\\*(.|\\s)*?\\*\\/", options: .regularExpression) else {
+                break
+            }
+            let newlineCount = String(programs[commentRange]).matches(forPattern: "\n").count
+            programs.replaceSubrange(commentRange, with: String(repeating: "\n", count: newlineCount))
+        }
+        
+        programs = programs.replacingOccurrences(of: "$", with: "$`")
+        
+        for (i, program) in programs.split(separator: "`").enumerated() {
+            if program.trimmingCharacters(in: .whitespacesAndNewlines) == "" { continue }
+            messenger.message(type: .system, message: "Program \(i)\n\(program)\n")
+            guard let tokens = Lexer.lex(program: String(program), verbose: isVerbose) else {
+                exit(2) // Exit code 2 indicates lex error
+            }
+            guard let AST = Parser.parse(tokens: tokens, verbose: isVerbose) else {
+                exit(3) // Exit code 3 indicates parse error
+            }
+            guard SemanticAnalyzer.analyze(AST: AST, verbose: isVerbose) != nil else {
+                exit(4) // Exit code 4 indicates semantic analysis error
+            }
+            guard let code = CodeGenerator.generate(AST: AST, verbose: isVerbose) else {
+                exit(5) // Exit code 5 indicates code generate error
+            }
+            // Print result regardless of verbose
+            messenger.message(type: .system, message: code, override: true)
+        }
+    }
+    
 }
 
 enum TokenType: String {

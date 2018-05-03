@@ -37,29 +37,4 @@ guard var programs = read(filename: inputFilename) else {
     exit(1) // Exit code 1 indicates input file not found
 }
 
-programs = programs.replacingOccurrences(of: "$", with: "$`")
-
-for (i, program) in programs.split(separator: "`").enumerated() {
-    if isVerboseMode {
-        print("Program \(i)\n\(program)\n")
-    }
-    
-    guard let tokens = Lexer.lex(program: String(program), verbose: isVerboseMode) else {
-        exit(2) // Exit code 2 indicates lex error
-    }
-    
-    guard let AST = Parser.parse(tokens: tokens, verbose: isVerboseMode) else {
-        exit(3) // Exit code 3 indicates parse error
-    }
-    
-    guard SemanticAnalyzer.analyze(AST: AST, verbose: isVerboseMode) != nil else {
-        exit(4) // Exit code 4 indicates semantic analysis error
-    }
-    
-    guard let code = CodeGenerator.generate(AST: AST, verbose: isVerboseMode) else {
-        exit(5) // Exit code 5 indicates code generate error
-    }
-    
-    print(code)
-
-}
+EXZLER.compile(input: programs, verbose: isVerboseMode)

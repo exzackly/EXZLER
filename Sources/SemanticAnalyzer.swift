@@ -36,6 +36,7 @@ class SemanticAnalyzer {
     
     static func analyze(AST: Tree<ASTNode>, verbose isVerbose: Bool = false) -> SymbolTable? {
         symbolTable = SymbolTable(data: [:])
+        idIndex = 0
         messenger.verbose = isVerbose
         
         guard checkBlock(node: AST.root.child.child) else { // Isolate main program block
