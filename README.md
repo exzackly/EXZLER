@@ -19,6 +19,7 @@ RUN:
 -l : specifies test lexing
 -p : specifies test parsing
 -s : specifies test semantic analyzing
+-c : specifies test code generating
 ```
 
 [example] (read source from file FILENAME, and verbosely print results)
@@ -26,7 +27,7 @@ RUN:
 Distrib/release/EXZLER -f FILENAME -v
 ```
 
-[testing] Test cases are partially automated and documented in 'tester.swift'. Run with...
+[testing] Test cases are partially automated and documented in 'Tester.swift'. Run with...
 ```
-Distrib/release/EXZLER -s
+Distrib/release/EXZLER -c
 ```

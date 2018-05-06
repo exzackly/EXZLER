@@ -13,7 +13,7 @@ class Tester {
         case lexing
         case parsing
         case semanticAnalyzing
-        case codeGenerator
+        case codeGenerating
     }
     
     static func test(_ tests: [Tests]) {
@@ -25,8 +25,8 @@ class Tester {
                 testParsing()
             case .semanticAnalyzing:
                 testSemanticAnalyzing()
-            case .codeGenerator:
-                break
+            case .codeGenerating:
+                testCodeGenerating()
             }
         }
     }
@@ -57,6 +57,7 @@ class Tester {
         for test in lexingTests {
             print(test + "\n")
             _ = Lexer.lex(program: test, verbose: true)
+            print()
         }
     }
     
@@ -82,6 +83,7 @@ class Tester {
             print(test + "\n")
             let tokens = Lexer.lex(program: test, verbose: true)!
             _ = Parser.parse(tokens: tokens, verbose: true)
+            print()
         }
     }
     
@@ -96,7 +98,7 @@ class Tester {
         "/*LongTestCase-EverythingExceptBooleanDeclaration*/{/*IntDeclaration*/intaintbbooleancbooleanda=0b=0c=trued=false/*WhileLoop*/while(a!=3){print(a)while(b!=3){print(b)b=1+bif(b==2){/*PrintStatement*/print(\"there is no spoon\"/*Thiswilldonothing*/)}}b=0a=1+a}}$", // No spaces; 2 warnings; c-d not used
         "{intaa=0booleanbb=falsebooleancc=truewhile(((a!=9)==(\"test\"!=\"alan\"))==((5==5)!=(b==c))){print(\"a\")stringdd=\"yes\"print(d){intaa=5}}}$", // Nested boolean expressions; 1 warning 0 errors
         "{intii=0stringss=\"hello\"booleanbb=(true==(1!=2))if(b==true){while(true!=(b!=(false==(2!=3)))){i=1+iprint(s)}}print(\"uglycode\")}$", // Nested boolean expressions; 0 warnings and 0 errors
- 
+        
         /* Error cases */
         "{boolean a a = true int b b = 7 if (a == b) {}}$", // Comparing boolean a to int b
         "{ int a { stringa a=\"exzackly\" print(a) } a=\"should fail\" print(a) }$", // Assigning "should fail" to int a
@@ -109,6 +111,27 @@ class Tester {
             let tokens = Lexer.lex(program: test, verbose: true)!
             let AST = Parser.parse(tokens: tokens, verbose: true)!
             _ = SemanticAnalyzer.analyze(AST: AST, verbose: true)
+            print()
+        }
+    }
+    
+    private static let codeGeneratingTests = [
+        "{/*exzackly7*/string a a=\"exzackly\" int b b = 7 print(a) print(b)}$", // exzackly7
+        "{/*truetruefalsetrue*/boolean a boolean b a=true b=a print(a) print(b) a=false print(a) print(b)}$", // truetruefalsetrue
+        "{/*za7ck21*/intzz=7+7+7print(\"za\")print(3+4)print(\"ck\")print(z)}$", // za7ck21
+        "{/*587810*/int a int b a = 7 { int a a = 5 print(a) b = 3+a print(b) } print(a) print(b) b = 3+a print(b) }$", // 587810
+        "{/*truefalsetruefalse*/stringaa=\"yes\"print((\"yes\"==\"yes\"))print((\"yes\"==\"no\"))print((a==\"yes\"))print((a==\"no\"))}$", //compare strings
+        "{/*truefalse*/stringastringba=\"yes\"b=\"yes\"print((a==b))b=\"no\"print((a==b))}$", //more compare strings
+        "{/*565*/intaa=5{print(a)intaa=6print(a)}print(a)}$",
+        "{/*012done*/intaa=0while(a!=3){print(a)a=1+a}print(\"done\")}$",
+        "{/*onethree*/ int a a = 3 if (a==3) { print(\"one\") if (a==5) { print(\"two\") } a = 2+a if (a==5) { print(\"three\") } } }$"
+    ]
+    
+    private static func testCodeGenerating() {
+        for test in codeGeneratingTests {
+            print(test + "\n")
+            EXZLER.compile(input: test, verbose: true)
+            print()
         }
     }
     
