@@ -15,6 +15,6 @@ let package = Package(
         .target(
             name: "EXZLER",
             dependencies: [],
-            path: ""),
+            path: "Sources"),
     ]
 )
