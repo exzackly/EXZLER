@@ -24,7 +24,7 @@ class SymbolTable: Tree<[String: ScopeType]> {
                 builder += variable
             }
         }
-        return builder
+        return builder == "Symbol Table\n" ? "Symbol Table\n empty\n" : builder
     }
     
     func expandSymbolTable(node: TreeNode<[String: ScopeType]>, depth: Int = 0) -> [[String]] {

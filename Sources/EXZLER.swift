@@ -9,10 +9,11 @@ import Foundation
 
 class EXZLER {
     
-    private static let messenger = Messenger(prefix: "EXZLER")
+    private static var messenger: Messenger!
     
-    static func compile(input: String, verbose isVerbose: Bool = false) {
-        messenger.verbose = isVerbose
+    static func compile(input: String, verbose isVerbose: Bool = false, emit: ((String, String, String) -> ())? = nil) {
+        let emit = emit ?? { (prefix, delimiter, message) in print(prefix+delimiter+message) }
+        messenger = Messenger(prefix: "EXZLER", verbose: isVerbose, emit: emit)
         // Strip comments while maintaining newlines
         var programs = input
         while true {
@@ -28,17 +29,11 @@ class EXZLER {
         for (i, program) in programs.split(separator: "`").enumerated() {
             if program.trimmingCharacters(in: .whitespacesAndNewlines) == "" { continue }
             messenger.message(type: .system, message: "Program \(i)\n\(program)\n")
-            guard let tokens = Lexer.lex(program: String(program), verbose: isVerbose) else {
-                exit(2) // Exit code 2 indicates lex error
-            }
-            guard let AST = Parser.parse(tokens: tokens, verbose: isVerbose) else {
-                exit(3) // Exit code 3 indicates parse error
-            }
-            guard SemanticAnalyzer.analyze(AST: AST, verbose: isVerbose) != nil else {
-                exit(4) // Exit code 4 indicates semantic analysis error
-            }
-            guard let code = CodeGenerator.generate(AST: AST, verbose: isVerbose) else {
-                exit(5) // Exit code 5 indicates code generate error
+            guard let tokens = Lexer.lex(program: String(program), verbose: isVerbose, emit: emit),
+                let AST = Parser.parse(tokens: tokens, verbose: isVerbose, emit: emit),
+                SemanticAnalyzer.analyze(AST: AST, verbose: isVerbose, emit: emit) != nil,
+                let code = CodeGenerator.generate(AST: AST, verbose: isVerbose, emit: emit) else {
+                    continue // Continue processing other programs
             }
             // Print result regardless of verbose
             messenger.message(type: .system, message: code, override: true)

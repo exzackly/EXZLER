@@ -33,15 +33,16 @@ class Lexer {
         ("[a-z]", .id),             // id
         ("\\s", .space),            // space
         ("\\$", .EOP),              // end of program
-        ("\".*\"", .invalid)        // invalid char list
+        ("\".*\"", .invalid),       // invalid char list
+        (".+?", .invalid)           // catch all other invalid
     ]
     
     private static let coalescedRegularExpression = symbols.reduce(""){ $0 == "" ? "(\($1.regularExpression))" : $0 + "|" + "(\($1.regularExpression))" }
     
-    private static let messenger = Messenger(prefix: "LEXER -> ")
+    private static var messenger: Messenger!
     
-    static func lex(program: String, verbose isVerbose: Bool = false) -> [Token]? {
-        messenger.verbose = isVerbose
+    static func lex(program: String, verbose isVerbose: Bool = false, emit: @escaping (String, String, String) -> ()) -> [Token]? {
+        messenger = Messenger(prefix: "LEXER", verbose: isVerbose, emit: emit)
         
         var tokens: [Token] = []
         var warningCount = 0
@@ -92,19 +93,11 @@ class Lexer {
     }
     
     private static func extract(matches: [NSTextCheckingResult], from program: String) -> [(substring: String, tokenType: TokenType)] {
-        var currentLocation = 0 // Used to ensure that ranges are contiguous. Non-matched section means invalid token found
         var extractedMatches: [(substring: String, tokenType: TokenType)] = []
-        
         outer: for match in matches {
             let matchRanges = (0..<match.numberOfRanges).map{ match.range(at: $0) } // Extract all ranges (capture groups)
             for (index, range) in matchRanges.enumerated().reversed() { // Iterate through ranges and grab last capture group
                 if range.location != NSNotFound {
-                    guard range.location == currentLocation else { // Non-matched section found; invalid token
-                        let errorRange = NSRange(location: currentLocation, length: 1)
-                        let errorData = String(program[Range(errorRange, in: program)!])
-                        return [(errorData, .invalid)]
-                    }
-                    currentLocation += range.length
                     let substring = String(program[Range(match.range, in: program)!])
                     let tokenType = symbols[index-1].tokenType // Symbols 0-indexed
                     extractedMatches.append((substring: substring, tokenType: tokenType))

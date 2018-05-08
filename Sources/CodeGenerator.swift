@@ -10,13 +10,13 @@ import Foundation
 class CodeGenerator {
     
     private static var codeBuilder = CodeBuilder(messenger: messenger)
-    private static let messenger = Messenger(prefix: "CODE GENERATOR -> ")
+    private static var messenger: Messenger!
     
     private static let BRANCH_AROUND_SIZE = 254 // 256 bytes program size - 2 bytes for BNE op code and operand
     
-    static func generate(AST: Tree<ASTNode>, verbose isVerbose: Bool = false) -> String? {
+    static func generate(AST: Tree<ASTNode>, verbose isVerbose: Bool = false, emit: @escaping (String, String, String) -> ()) -> String? {
+        messenger = Messenger(prefix: "CODE GENERATOR", verbose: isVerbose, emit: emit)
         codeBuilder = CodeBuilder(messenger: messenger)
-        messenger.verbose = isVerbose
         
         generateBlock(node: AST.root.child.child) // Isolate main program block
         codeBuilder.break()

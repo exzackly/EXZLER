@@ -14,14 +14,14 @@ class Parser {
     private static var tokens: [Token]!
     private static var concreteSyntaxTree = Tree(data: "<CST>")
     private static var abstractSyntaxTree = Tree<ASTNode>(data: (name: "<AST>", lineNumber: 0, type: nil, idIndex: nil))
-    private static let messenger = Messenger(prefix: "PARSER -> ")
+    private static var messenger: Messenger!
     
-    static func parse(tokens passedTokens: [Token], verbose isVerbose: Bool = false) -> Tree<ASTNode>? {
+    static func parse(tokens passedTokens: [Token], verbose isVerbose: Bool = false, emit: @escaping (String, String, String) -> ()) -> Tree<ASTNode>? {
         tokens = passedTokens
         concreteSyntaxTree = Tree(data: "<CST>")
         abstractSyntaxTree = Tree(data: (name: "<AST>", lineNumber: 0, type: nil, idIndex: nil))
         abstractSyntaxTree.printMethod = { node in return "\(node.data.name)\n" }
-        messenger.verbose = isVerbose
+        messenger = Messenger(prefix: "PARSER", verbose: isVerbose, emit: emit)
         
         guard parseProgram() else {
             messenger.message(type: .system, message: "Parsing completed with 0 warning(s) and 1 error(s)\n\nCST skipped due to parse errors\n\nAST skipped due to parse errors\n", override: true)

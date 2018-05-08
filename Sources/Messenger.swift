@@ -19,21 +19,25 @@ class Messenger {
     private let prefix: String
     private var hasPrintedError = false
     
-    var verbose = false
-    var emit: (String) -> () = { message in print(message) }
+    private let verbose: Bool
+    private let emit: (String, String, String) -> ()
     
-    init(prefix: String) {
+    init(prefix: String, verbose isVerbose: Bool, emit: @escaping (String, String, String) -> ()) {
         self.prefix = prefix
+        self.verbose = isVerbose
+        self.emit = emit
     }
     
     func message(type: MessageType, message: String, override: Bool = false) {
         var prefix = self.prefix
+        var delimiter = ""
         switch type {
         case .system:
             if !verbose && !override { return }
             prefix = ""
         case .success:
             if !verbose && !override { return }
+            delimiter = " -> "
         case .warning:
             prefix = "WARNING: "
         case .error:
@@ -41,7 +45,7 @@ class Messenger {
             hasPrintedError = true
             prefix = "ERROR: "
         }
-        emit(prefix + message)
+        emit(prefix, delimiter, message)
     }
     
 }

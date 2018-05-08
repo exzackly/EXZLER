@@ -32,12 +32,12 @@ class SemanticAnalyzer {
     
     private static var symbolTable = SymbolTable(data: [:])
     private static var idIndex = 0
-    private static let messenger = Messenger(prefix: "SEMANTIC ANALYZER -> ")
+    private static var messenger: Messenger!
     
-    static func analyze(AST: Tree<ASTNode>, verbose isVerbose: Bool = false) -> SymbolTable? {
+    static func analyze(AST: Tree<ASTNode>, verbose isVerbose: Bool = false, emit: @escaping (String, String, String) -> ()) -> SymbolTable? {
         symbolTable = SymbolTable(data: [:])
         idIndex = 0
-        messenger.verbose = isVerbose
+        messenger = Messenger(prefix: "SEMANTIC ANALYZER", verbose: isVerbose, emit: emit)
         
         guard checkBlock(node: AST.root.child.child) else { // Isolate main program block
             return nil
