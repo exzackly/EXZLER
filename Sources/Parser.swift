@@ -31,7 +31,7 @@ class Parser {
         // Print result regardless of verbose
         messenger.message(type: .system, message: "Parsing completed with 0 warning(s) and 0 error(s)\n", override: true)
         
-        abstractSyntaxTree = liftBoolops(AST: abstractSyntaxTree) // Lift boolops
+        abstractSyntaxTree = AbstractSyntaxTreeOptimizer.optimize(AST: abstractSyntaxTree) // Perform AST optimizations
         
         messenger.message(type: .system, message: "\(concreteSyntaxTree)")
         messenger.message(type: .system, message: "\(abstractSyntaxTree)")
@@ -168,20 +168,5 @@ class Parser {
         .equality : [add(child: "Boolop"), consume(tokenType: .equality), endChild()],    // boolop ::== ==
         .inequality : [add(child: "Boolop"), consume(tokenType: .inequality), endChild()] // boolop ::== !=
     ]
-    
-    private static func liftBoolops(AST: Tree<ASTNode>) -> Tree<ASTNode> {
-        var queue = [AST.root] // Loop over AST
-        while !queue.isEmpty {
-            let currentNode = queue[0]
-            queue += currentNode.children
-            if currentNode.key == "Boolop" { // Locate Boolop subtrees
-                let liftedName = currentNode.children[1].key == "==" ? "<Equality>" : "<Inequality>"
-                currentNode.data.name = liftedName // Lift boolop
-                currentNode.children = [currentNode.children[0], currentNode.children[2]] // Fold children
-            }
-            queue.remove(at: 0)
-        }
-        return AST
-    }
     
 }

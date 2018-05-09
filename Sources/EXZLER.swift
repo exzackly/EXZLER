@@ -92,6 +92,7 @@ let TokenTypeToDescription: [TokenType : String] = [
     .invalid          : "invalid"
 ]
 
+let BOOLOP_NODE = "Boolop"
 let ADDITION_NODE = "Addition"
 let TRUE_NODE = "true"
 let FALSE_NODE = "false"
