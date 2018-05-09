@@ -13,7 +13,9 @@ class AbstractSyntaxTreeOptimizer {
         BOOLOP_NODE : liftBoolops,
         ADDITION_NODE : constantFold,
         EQUALITY_NODE : booleanFold,
-        INEQUALITY_NODE : booleanFold
+        INEQUALITY_NODE : booleanFold,
+        IF_STATEMENT_NODE : ifAndWhileFalseFold,
+        WHILE_STATEMENT_NODE : ifAndWhileFalseFold
     ]
     
     static func optimize(AST: Tree<ASTNode>) -> Tree<ASTNode> {
@@ -35,6 +37,17 @@ class AbstractSyntaxTreeOptimizer {
         return true
     }
     
+    private static func guardThenFold(node: TreeNode<ASTNode>, conditions: [() -> Bool], action: (TreeNode<ASTNode>) -> String) -> Bool {
+        for condition in conditions { // Check all conditions first
+            guard condition() else {
+                return false // Condition not met; return false
+            }
+        }
+        node.data.name = "[ \(action(node)) ]" // Set value of folded node
+        node.children = []
+        return true
+    }
+    
     private static func constantFold(node: TreeNode<ASTNode>) -> Bool {
         let conditions = [{ return Int(node.leftChild.key) != nil }, { return Int(node.rightChild.key) != nil }] // Ensure left and right children are ints
         let action: (TreeNode<ASTNode>) -> String = { "\(Int($0.leftChild.key)! + Int($0.rightChild.key)!)" } // Return string of sum
@@ -50,19 +63,21 @@ class AbstractSyntaxTreeOptimizer {
             let conditions = [{ return Int(node.leftChild.key) != nil }, { return Int(node.rightChild.key) != nil }] // Ensure left and right children are ints
             let action: (TreeNode<ASTNode>) -> String = { ($0.key == EQUALITY_NODE) == (Int($0.leftChild.key)! == Int($0.rightChild.key)) ? TRUE_NODE : FALSE_NODE }
             return guardThenFold(node: node, conditions: conditions, action: action)
+        } else if node.leftChild.key.first == QUOTE_NODE {
+            let conditions = [{ return node.rightChild.key.first == QUOTE_NODE }] // Left node checked above; ensure right child is string literal
+            let action: (TreeNode<ASTNode>) -> String = { ($0.key == EQUALITY_NODE) == ($0.leftChild.key == $0.rightChild.key) ? TRUE_NODE : FALSE_NODE } // Return string of result
+            return guardThenFold(node: node, conditions: conditions, action: action)
         } else {
             return false
         }
     }
     
-    private static func guardThenFold(node: TreeNode<ASTNode>, conditions: [() -> Bool], action: (TreeNode<ASTNode>) -> String) -> Bool {
-        for condition in conditions { // Check all conditions first
-            guard condition() else {
-                return false // Condition not met; return false
-            }
+    private static func ifAndWhileFalseFold(node: TreeNode<ASTNode>) -> Bool {
+        guard node.leftChild.key == FALSE_NODE else {
+            return false
         }
-        node.data.name = "[ \(action(node)) ]" // Set value of folded node
-        node.children = []
+        node.data.name = "<Block>" // Lift empty block
+        node.children = [] // Having no children ensures no code is generated
         return true
     }
     

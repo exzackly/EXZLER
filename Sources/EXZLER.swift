@@ -99,6 +99,8 @@ let FALSE_NODE = "false"
 let QUOTE_NODE: Character = "\""
 let EQUALITY_NODE = "Equality"
 let INEQUALITY_NODE = "Inequality"
+let IF_STATEMENT_NODE = "IfStatement"
+let WHILE_STATEMENT_NODE = "WhileStatement"
 
 class Token: CustomStringConvertible {
     

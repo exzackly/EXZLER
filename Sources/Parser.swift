@@ -133,9 +133,9 @@ class Parser {
                consume(tokenType: .assignment), parseExpr, endChild(isAbstract: true), endChild()],                                                  // Statement ::== AssignmentStatement
         .type : [add(child: "Statement"), add(child: "VarDecl", isAbstract: true), add(child: "Type"), consume(tokenType: .type), endChild(),
                  add(child: "Id"), consume(tokenType: .id), endChild(), endChild(isAbstract: true), endChild()],                                     // Statement ::== VarDecl
-        .while : [add(child: "Statement"), add(child: "WhileStatement", isAbstract: true), consume(tokenType: .while), parseBooleanExpr, parseBlock,
+        .while : [add(child: "Statement"), add(child: WHILE_STATEMENT_NODE, isAbstract: true), consume(tokenType: .while), parseBooleanExpr, parseBlock,
                   endChild(isAbstract: true), endChild()],                                                                                           // Statement ::== WhileStatement
-        .if : [add(child: "Statement"), add(child: "IfStatement", isAbstract: true), consume(tokenType: .if), parseBooleanExpr, parseBlock,
+        .if : [add(child: "Statement"), add(child: IF_STATEMENT_NODE, isAbstract: true), consume(tokenType: .if), parseBooleanExpr, parseBlock,
                endChild(isAbstract: true), endChild()],                                                                                              // Statement ::== IfStatement
         .leftCurlyBrace : [add(child: "Statement"), parseBlock, endChild()]                                                                          // Statement ::== Block
     ]
@@ -157,7 +157,7 @@ class Parser {
     
     private static let parseBooleanExpr = { return parse(routes: booleanExprRoutes) }
     private static let booleanExprRoutes: RoutesType = [
-        .leftParenthesis : [add(child: "BooleanExpr"), add(child: "Boolop", isConcrete: false, isAbstract: true),
+        .leftParenthesis : [add(child: "BooleanExpr"), add(child: BOOLOP_NODE, isConcrete: false, isAbstract: true),
                             consume(tokenType: .leftParenthesis), parseExpr, parseBoolop, parseExpr,
                             consume(tokenType: .rightParenthesis), endChild(isConcrete: false, isAbstract: true), endChild()], // BooleanExpr ::== ( Expr boolop Expr )
         .boolean : [add(child: "BooleanExpr"), consume(tokenType: .boolean), endChild()]                                       // BooleanExpr ::== boolval
@@ -165,8 +165,8 @@ class Parser {
     
     private static let parseBoolop = { return parse(routes: boolopRoutes) }
     private static let boolopRoutes: RoutesType = [
-        .equality : [add(child: "Boolop"), consume(tokenType: .equality), endChild()],    // boolop ::== ==
-        .inequality : [add(child: "Boolop"), consume(tokenType: .inequality), endChild()] // boolop ::== !=
+        .equality : [add(child: BOOLOP_NODE), consume(tokenType: .equality), endChild()],    // boolop ::== ==
+        .inequality : [add(child: BOOLOP_NODE), consume(tokenType: .inequality), endChild()] // boolop ::== !=
     ]
     
 }

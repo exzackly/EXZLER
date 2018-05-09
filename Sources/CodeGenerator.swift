@@ -35,8 +35,8 @@ class CodeGenerator {
         "PrintStatement" : generatePrint,
         "AssignmentStatement" : generateAssignment,
         "VarDecl" : generateVarDecl,
-        "WhileStatement" : generateWhile,
-        "IfStatement" : generateIf,
+        WHILE_STATEMENT_NODE : generateWhile,
+        IF_STATEMENT_NODE : generateIf,
         "Block" : generateBlock
     ]
     
@@ -97,7 +97,7 @@ class CodeGenerator {
             codeBuilder.loadAccumulator(with: 0)
             codeBuilder.storeAccumulator(at: temporaryLocation.location)
         } else if node.leftChild.key == "boolean" || node.leftChild.key == "string" { // Initialize booleans and strings
-            let defaultString = node.leftChild.key == "boolean" ? "false" : "" // // Booleans = false and strings = empty string
+            let defaultString = node.leftChild.key == "boolean" ? FALSE_NODE : "" // // Booleans = false and strings = empty string
             let stringLocation = codeBuilder.stringLocation(for: defaultString) // Determine location of false or empty string
             codeBuilder.loadAccumulator(with: stringLocation)
             codeBuilder.storeAccumulator(at: temporaryLocation.location) // Store pointer to string in memory

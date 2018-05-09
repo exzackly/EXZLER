@@ -61,8 +61,8 @@ class SemanticAnalyzer {
         "PrintStatement" : checkPrint,
         "AssignmentStatement" : checkAssignment,
         "VarDecl" : checkVarDecl,
-        "WhileStatement" : checkWhileAndIf,
-        "IfStatement" : checkWhileAndIf,
+        WHILE_STATEMENT_NODE : checkWhileAndIf,
+        IF_STATEMENT_NODE : checkWhileAndIf,
         "Block" : checkBlock
     ]
     
